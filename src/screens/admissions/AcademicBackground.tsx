@@ -38,15 +38,21 @@ interface GradeEntry {
   completionYear: string;
 }
 
-function getGradeLevels(schoolLevel: SchoolLevel): string[] {
+function getGradeLevels(schoolLevel: SchoolLevel, applicantType: ApplicantType): string[] {
   switch (schoolLevel) {
-    case 'College':
-      return ['Primary', 'Intermediate', 'Junior High School', 'Senior High School'];
+    case 'College': {
+      const base = ['Primary School', 'Elementary', 'Junior High School', 'Senior High School'];
+      if (applicantType === 'Transferee') {
+        base.push('Previous College');
+      }
+      return base;
+    }
     case 'Senior High School':
-      return ['Junior High School'];
+      return ['Grade 11', 'Grade 12'];
     case 'Junior High School':
-      return ['Primary', 'Intermediate'];
+      return ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'];
     case 'Elementary':
+      return ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'];
     case 'Kinder':
       return ['Preschool/Kindergarten'];
     default:
@@ -69,7 +75,7 @@ export default function AcademicBackground({ navigation, route }: Props) {
   const yearOptions = generateYearOptions();
 
   const [grades, setGrades] = useState<GradeEntry[]>(() => {
-    const requiredLevels = getGradeLevels(schoolLevel);
+    const requiredLevels = getGradeLevels(schoolLevel, applicantType);
     
     // Create initial rows for all required levels
     const initialRows = requiredLevels.map((level, index) => ({
@@ -81,12 +87,20 @@ export default function AcademicBackground({ navigation, route }: Props) {
 
     // If we have persisted data, prioritize it completely
     if (initialData?.academicBackground && initialData.academicBackground.length > 0) {
-      return initialData.academicBackground.map((entry: any, index: number) => ({
-        id: entry.id || `persisted-${index}`,
-        level: entry.grade_level || '',
-        schoolName: entry.school_name || '',
-        completionYear: entry.completion_year || '',
-      }));
+      // Create a map of persisted data by level for easy lookup
+      const persistedMap = new Map(
+        initialData.academicBackground.map((entry: any) => [entry.grade_level, entry])
+      );
+
+      return requiredLevels.map((level, index) => {
+        const persisted = persistedMap.get(level);
+        return {
+          id: persisted?.id || `initial-${index}`,
+          level,
+          schoolName: persisted?.school_name || '',
+          completionYear: persisted?.completion_year || '',
+        };
+      });
     }
     
     return initialRows;
@@ -95,9 +109,9 @@ export default function AcademicBackground({ navigation, route }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
-  // Sync grades when schoolLevel changes (e.g. if user went back and changed level)
+  // Sync grades when schoolLevel/applicantType changes
   React.useEffect(() => {
-    const requiredLevels = getGradeLevels(schoolLevel);
+    const requiredLevels = getGradeLevels(schoolLevel, applicantType);
     const initialRows = requiredLevels.map((level, index) => ({
       id: `initial-${index}`,
       level,
@@ -106,8 +120,6 @@ export default function AcademicBackground({ navigation, route }: Props) {
     }));
 
     setGrades(prev => {
-      // If the number of rows or the levels themselves changed, we need to re-initialize
-      // but try to preserve existing data for matching levels.
       return initialRows.map(row => {
         const matchingEntry = prev.find(p => p.level === row.level);
         if (matchingEntry) {
@@ -120,7 +132,7 @@ export default function AcademicBackground({ navigation, route }: Props) {
         return row;
       });
     });
-  }, [schoolLevel]);
+  }, [schoolLevel, applicantType]);
   
   const updateGrade = (id: string, field: keyof GradeEntry, value: string) => {
     let finalValue = value;
@@ -264,25 +276,9 @@ export default function AcademicBackground({ navigation, route }: Props) {
             return (
               <View key={grade.id} style={styles.gradeEntry}>
                 <View style={styles.gradeHeader}>
-                  <View style={[styles.pickerContainer, { flex: 1, marginRight: 10 }, errors[`${grade.id}-level`] && styles.inputError]}>
-                    <Picker
-                      selectedValue={grade.level}
-                      onValueChange={(value) => updateGrade(grade.id, 'level', value)}
-                      style={styles.picker}
-                    >
-                      <Picker.Item label="Select level" value="" />
-                      <Picker.Item label="Primary" value="Primary" />
-                      <Picker.Item label="Intermediate" value="Intermediate" />
-                      <Picker.Item label="Junior High School" value="Junior High School" />
-                      <Picker.Item label="Senior High School" value="Senior High School" />
-                      <Picker.Item label="College (Transferee)" value="College" />
-                    </Picker>
+                  <View style={[styles.readOnlyInput, { flex: 1 }]}>
+                    <Text style={styles.readOnlyText}>{grade.level}</Text>
                   </View>
-                  {grades.length > 1 && (
-                    <TouchableOpacity onPress={() => removeGrade(grade.id)} style={styles.removeBtn}>
-                      <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                    </TouchableOpacity>
-                  )}
                 </View>
 
                 {/* School Name */}
@@ -322,12 +318,6 @@ export default function AcademicBackground({ navigation, route }: Props) {
               </View>
             );
           })}
-
-          {/* Add Button */}
-          <TouchableOpacity style={styles.addButton} onPress={addGrade}>
-            <Ionicons name="add-circle-outline" size={20} color="#F59E0B" />
-            <Text style={styles.addButtonText}>Add Another School</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
