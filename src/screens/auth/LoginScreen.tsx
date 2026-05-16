@@ -112,6 +112,10 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
+          <TouchableOpacity onPress={() => navigation.navigate('AlumniRegister')} style={{ alignItems: 'center', marginBottom: 16 }}>
+            <Text style={{ color: '#F59E0B', fontWeight: 'bold' }}>Alumni Registration →</Text>
+          </TouchableOpacity>
+
           <View style={styles.helpContainer}>
             <Text style={styles.helpText}>Need help? Contact the admissions office</Text>
           </View>
