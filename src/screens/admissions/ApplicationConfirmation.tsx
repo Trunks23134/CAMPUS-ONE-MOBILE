@@ -184,18 +184,6 @@ export default function ApplicationConfirmation({ navigation, route }: Props) {
           </View>
         </View>
 
-        {/* Email Notice */}
-        <View style={styles.emailNotice}>
-          <Ionicons name="mail-outline" size={20} color="#3b82f6" />
-          <View style={styles.emailNoticeContent}>
-            <Text style={styles.emailNoticeTitle}>Check Your Email</Text>
-            <Text style={styles.emailNoticeText}>
-              We've sent a confirmation email to {email} with your reference number and important
-              information. If you don't see it, please check your spam folder.
-            </Text>
-          </View>
-        </View>
-
         {/* Action Buttons */}
         <View style={styles.actions}>
           <TouchableOpacity
