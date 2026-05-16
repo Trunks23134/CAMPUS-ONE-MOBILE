@@ -153,6 +153,7 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
 
     // If blank, skip database call and proceed immediately
     if (filledAlumni.length === 0) {
+      setLoading(false);
       onSuccess({ relatives: [] });
       return;
     }
