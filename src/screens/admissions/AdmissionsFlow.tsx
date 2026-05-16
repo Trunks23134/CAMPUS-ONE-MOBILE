@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { AppSession, SchoolLevel, ApplicantType } from '../../types/admissions.types';
 import SchoolLevelSelection from './SchoolLevelSelection';
 import ApplicantTypeSelection from './ApplicantTypeSelection';
-import { submitApplication } from '../../services/admissions.service';
+import { submitApplication, saveProgramSelection } from '../../services/admissions.service';
 
 interface Props {
   navigation: any;
@@ -209,6 +209,8 @@ export default function AdmissionsFlow({ navigation }: Props) {
       relatives: data.relatives,
       step: 'program-selection' 
     });
+
+    console.log('[AdmissionsFlow] Alumni info completed. Processing next step...');
 
     // Skip Program Selection for Kinder, Elementary, and JHS
     const skipProgramSelection = 
