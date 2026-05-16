@@ -253,7 +253,7 @@ export default function ProgramSelection({ navigation, route }: Props) {
           <View style={styles.card}>
             {/* Department Selection */}
             <View style={styles.field}>
-              <Text style={styles.label}>College Department</Text>
+              <Text style={styles.label}>College Department <Text style={styles.required}>*</Text></Text>
               <View style={styles.pickerContainer}>
                 <Picker
                   selectedValue={collegeDepartment ?? ''}
@@ -273,7 +273,7 @@ export default function ProgramSelection({ navigation, route }: Props) {
 
             {/* Program Selection */}
             <View style={styles.field}>
-              <Text style={styles.label}>Program / Course</Text>
+              <Text style={styles.label}>Program / Course <Text style={styles.required}>*</Text></Text>
               <View style={[styles.pickerContainer, !collegeDepartment && styles.pickerDisabled]}>
                 <Picker
                   selectedValue={collegeProgram ?? ''}
@@ -372,7 +372,7 @@ export default function ProgramSelection({ navigation, route }: Props) {
           {/* Track Selection Card */}
           <View style={styles.card}>
             <View style={styles.field}>
-              <Text style={styles.label}>Track</Text>
+              <Text style={styles.label}>Track <Text style={styles.required}>*</Text></Text>
               <View style={styles.trackButtons}>
                 {SENIOR_HIGH_TRACKS.map((track) => (
                   <TouchableOpacity
@@ -403,7 +403,7 @@ export default function ProgramSelection({ navigation, route }: Props) {
             {/* Strand Selection (for TVL track) */}
             {seniorHighTrack === 'TVL' && (
               <View style={styles.field}>
-                <Text style={styles.label}>Strand (TVL)</Text>
+                <Text style={styles.label}>Strand (TVL) <Text style={styles.required}>*</Text></Text>
                 <View style={styles.trackButtons}>
                   {TVL_STRANDS.map((strand) => (
                     <TouchableOpacity
@@ -551,6 +551,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  required: {
+    color: '#ef4444',
   },
   pickerContainer: {
     borderWidth: 1,

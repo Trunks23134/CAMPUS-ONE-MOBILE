@@ -172,7 +172,7 @@ export default function PersonalProfile({ navigation, route }: Props) {
           {/* Name Fields */}
           <View style={styles.row}>
             <View style={styles.halfField}>
-              <Text style={styles.label}>First Name</Text>
+              <Text style={styles.label}>First Name <Text style={styles.required}>*</Text></Text>
               <TextInput
                 style={[styles.input, errors.firstName && styles.inputError]}
                 value={form.firstName}
@@ -184,7 +184,7 @@ export default function PersonalProfile({ navigation, route }: Props) {
             </View>
 
             <View style={styles.halfField}>
-              <Text style={styles.label}>Last Name</Text>
+              <Text style={styles.label}>Last Name <Text style={styles.required}>*</Text></Text>
               <TextInput
                 style={[styles.input, errors.lastName && styles.inputError]}
                 value={form.lastName}
@@ -211,7 +211,7 @@ export default function PersonalProfile({ navigation, route }: Props) {
 
           {/* Birthdate */}
           <View style={styles.field}>
-            <Text style={styles.label}>Birthdate</Text>
+            <Text style={styles.label}>Birthdate <Text style={styles.required}>*</Text></Text>
             <TouchableOpacity
               style={[styles.input, styles.dateInput, errors.birthdate && styles.inputError]}
               onPress={() => setShowDatePicker(true)}
@@ -219,29 +219,14 @@ export default function PersonalProfile({ navigation, route }: Props) {
               <Text style={form.birthdate ? styles.dateText : styles.datePlaceholder}>
                 {form.birthdate ? formatDate(form.birthdate) : 'Select birthdate'}
               </Text>
-              <Ionicons name="calendar-outline" size={20} color="#9ca3af" />
+              <Ionicons name="calendar" size={20} color="#9ca3af" />
             </TouchableOpacity>
             {errors.birthdate ? <Text style={styles.errorText}>{errors.birthdate}</Text> : null}
           </View>
 
-          {showDatePicker && (
-            <DateTimePicker
-              value={form.birthdate || new Date()}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={(event, selectedDate) => {
-                setShowDatePicker(Platform.OS === 'ios');
-                if (selectedDate) {
-                  setField('birthdate')(selectedDate);
-                }
-              }}
-              maximumDate={new Date()}
-            />
-          )}
-
           {/* Mobile Number */}
           <View style={styles.field}>
-            <Text style={styles.label}>Mobile Number</Text>
+            <Text style={styles.label}>Mobile Number <Text style={styles.required}>*</Text></Text>
             <TextInput
               style={[styles.input, errors.mobileNumber && styles.inputError]}
               value={form.mobileNumber}
@@ -258,7 +243,7 @@ export default function PersonalProfile({ navigation, route }: Props) {
             <Text style={styles.sectionTitle}>Address</Text>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Street</Text>
+              <Text style={styles.label}>Street <Text style={styles.required}>*</Text></Text>
               <TextInput
                 style={[styles.input, errors.street && styles.inputError]}
                 value={form.street}
@@ -270,7 +255,7 @@ export default function PersonalProfile({ navigation, route }: Props) {
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Barangay</Text>
+              <Text style={styles.label}>Barangay <Text style={styles.required}>*</Text></Text>
               <TextInput
                 style={[styles.input, errors.barangay && styles.inputError]}
                 value={form.barangay}
@@ -283,7 +268,7 @@ export default function PersonalProfile({ navigation, route }: Props) {
 
             <View style={styles.row}>
               <View style={styles.halfField}>
-                <Text style={styles.label}>City / Municipality</Text>
+                <Text style={styles.label}>City / Municipality <Text style={styles.required}>*</Text></Text>
                 <TextInput
                   style={[styles.input, errors.city && styles.inputError]}
                   value={form.city}
@@ -295,7 +280,7 @@ export default function PersonalProfile({ navigation, route }: Props) {
               </View>
 
               <View style={styles.halfField}>
-                <Text style={styles.label}>Province</Text>
+                <Text style={styles.label}>Province <Text style={styles.required}>*</Text></Text>
                 <TextInput
                   style={[styles.input, errors.province && styles.inputError]}
                   value={form.province}
@@ -308,7 +293,7 @@ export default function PersonalProfile({ navigation, route }: Props) {
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.label}>ZIP Code</Text>
+              <Text style={styles.label}>ZIP Code <Text style={styles.required}>*</Text></Text>
               <TextInput
                 style={[styles.input, errors.zipCode && styles.inputError]}
                 value={form.zipCode}
@@ -322,6 +307,21 @@ export default function PersonalProfile({ navigation, route }: Props) {
           </View>
         </View>
       </ScrollView>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={form.birthdate || new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={(event, selectedDate) => {
+            setShowDatePicker(Platform.OS === 'ios');
+            if (selectedDate) {
+              setField('birthdate')(selectedDate);
+            }
+          }}
+          maximumDate={new Date()}
+        />
+      )}
 
       {/* Footer */}
       <View style={styles.footer}>
@@ -447,6 +447,9 @@ const styles = StyleSheet.create({
   optional: {
     fontWeight: '400',
     color: '#9ca3af',
+  },
+  required: {
+    color: '#ef4444',
   },
   input: {
     height: 48,
