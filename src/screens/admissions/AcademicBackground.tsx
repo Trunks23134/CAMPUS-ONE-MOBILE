@@ -43,11 +43,12 @@ function getGradeLevels(schoolLevel: SchoolLevel): string[] {
     case 'College':
       return ['Primary', 'Intermediate', 'Junior High School', 'Senior High School'];
     case 'Senior High School':
-      return ['Primary', 'Intermediate', 'Junior High School'];
+      return ['Junior High School'];
     case 'Junior High School':
       return ['Primary', 'Intermediate'];
     case 'Elementary':
-      return ['Preparatory', 'Kindergarten', 'Nursery'];
+    case 'Kinder':
+      return ['Preschool/Kindergarten'];
     default:
       return [];
   }
