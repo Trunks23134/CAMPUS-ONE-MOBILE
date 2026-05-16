@@ -331,5 +331,6 @@ function generateUUID(): string {
 function generateReferenceNumber(): string {
   const year = new Date().getFullYear();
   const random = Math.floor(100000 + Math.random() * 900000); // 6 digits
+  // Standardized prefix "APP-" for all school levels as requested
   return `APP-${year}-${random}`;
 }
