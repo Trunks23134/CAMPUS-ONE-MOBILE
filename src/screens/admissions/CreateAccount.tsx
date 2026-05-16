@@ -105,7 +105,7 @@ export default function CreateAccount({ navigation, route }: Props) {
         {/* Form Card */}
         <View style={styles.card}>
           <Text style={styles.label}>
-            Email Address{' '}
+            Email Address <Text style={styles.required}>*</Text>{' '}
             <Text style={styles.labelHint}>(used to track your application)</Text>
           </Text>
           <TextInput
@@ -264,6 +264,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4b5563',
     marginBottom: 6,
+  },
+  required: {
+    color: '#ef4444',
   },
   labelHint: {
     fontWeight: '400',

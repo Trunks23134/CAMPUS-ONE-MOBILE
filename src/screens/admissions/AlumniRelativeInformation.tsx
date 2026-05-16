@@ -255,7 +255,7 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
 
               {/* Name */}
               <View style={styles.field}>
-                <Text style={styles.label}>Name</Text>
+                <Text style={styles.label}>Name <Text style={styles.required}>*</Text></Text>
                 <TextInput
                   style={[styles.input, errors[`${item.id}-name`] && styles.inputError]}
                   value={item.name}
@@ -270,7 +270,7 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
 
               {/* Relationship */}
               <View style={styles.field}>
-                <Text style={styles.label}>Relationship</Text>
+                <Text style={styles.label}>Relationship <Text style={styles.required}>*</Text></Text>
                 <View style={[styles.pickerContainer, errors[`${item.id}-relationship`] && styles.inputError]}>
                   <Picker
                     selectedValue={item.relationship}
@@ -290,7 +290,7 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
 
               {/* College */}
               <View style={styles.field}>
-                <Text style={styles.label}>College</Text>
+                <Text style={styles.label}>College <Text style={styles.required}>*</Text></Text>
                 <View style={[styles.pickerContainer, errors[`${item.id}-college`] && styles.inputError]}>
                   <Picker
                     selectedValue={item.college}
@@ -310,7 +310,7 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
 
               {/* Batch Year */}
               <View style={styles.field}>
-                <Text style={styles.label}>Batch Year</Text>
+                <Text style={styles.label}>Batch Year <Text style={styles.required}>*</Text></Text>
                 <View style={[styles.pickerContainer, errors[`${item.id}-batch`] && styles.inputError]}>
                   <Picker
                     selectedValue={item.batch}
@@ -330,7 +330,7 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
 
               {/* Contact Number */}
               <View style={styles.field}>
-                <Text style={styles.label}>Contact Number</Text>
+                <Text style={styles.label}>Contact Number <Text style={styles.required}>*</Text></Text>
                 <TextInput
                   style={[styles.input, errors[`${item.id}-contactNumber`] && styles.inputError]}
                   value={item.contactNumber}
@@ -515,6 +515,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4b5563',
     marginBottom: 6,
+  },
+  required: {
+    color: '#ef4444',
   },
   input: {
     height: 48,

@@ -146,7 +146,7 @@ export default function ParentInformation({ navigation, route }: Props) {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Father's Name</Text>
+            <Text style={styles.label}>Father's Name <Text style={styles.required}>*</Text></Text>
             <TextInput
               style={[styles.input, errors.fatherName && styles.inputError]}
               value={form.fatherName}
@@ -256,7 +256,7 @@ export default function ParentInformation({ navigation, route }: Props) {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Mother's Name</Text>
+            <Text style={styles.label}>Mother's Name <Text style={styles.required}>*</Text></Text>
             <TextInput
               style={[styles.input, errors.motherName && styles.inputError]}
               value={form.motherName}
@@ -433,6 +433,9 @@ const styles = StyleSheet.create({
   optional: {
     fontWeight: '400',
     color: '#9ca3af',
+  },
+  required: {
+    color: '#ef4444',
   },
   input: {
     height: 48,

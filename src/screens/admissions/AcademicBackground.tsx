@@ -214,7 +214,7 @@ export default function AcademicBackground({ navigation, route }: Props) {
 
                 {/* Grade Level */}
                 <View style={styles.field}>
-                  <Text style={styles.label}>Grade Level</Text>
+                  <Text style={styles.label}>Grade Level <Text style={styles.required}>*</Text></Text>
                   {isCustomRow ? (
                     <TextInput
                       style={[styles.input, errors[`${grade.id}-level`] && styles.inputError]}
@@ -235,7 +235,7 @@ export default function AcademicBackground({ navigation, route }: Props) {
 
                 {/* School Name */}
                 <View style={styles.field}>
-                  <Text style={styles.label}>School Name</Text>
+                  <Text style={styles.label}>School Name <Text style={styles.required}>*</Text></Text>
                   <TextInput
                     style={[styles.input, errors[`${grade.id}-schoolName`] && styles.inputError]}
                     value={grade.schoolName}
@@ -250,7 +250,7 @@ export default function AcademicBackground({ navigation, route }: Props) {
 
                 {/* Completion Year */}
                 <View style={styles.field}>
-                  <Text style={styles.label}>Completion Year</Text>
+                  <Text style={styles.label}>Completion Year <Text style={styles.required}>*</Text></Text>
                   <View style={[styles.pickerContainer, errors[`${grade.id}-completionYear`] && styles.inputError]}>
                     <Picker
                       selectedValue={grade.completionYear}
@@ -426,6 +426,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4b5563',
     marginBottom: 6,
+  },
+  required: {
+    color: '#ef4444',
   },
   input: {
     height: 48,
