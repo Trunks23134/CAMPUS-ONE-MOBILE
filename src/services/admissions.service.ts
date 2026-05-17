@@ -214,9 +214,24 @@ export async function uploadApplicantDocument(
     const response = await fetch(dto.file_uri);
     const blob = await response.blob();
 
+    // Fetch applicant reference number from the database using applicant_id
+    const { data: profileData, error: profileError } = await supabase
+      .from('applicant_profiles')
+      .select('reference_number')
+      .eq('id', dto.applicant_id)
+      .single();
+
+    if (profileError || !profileData || !profileData.reference_number) {
+      return {
+        data: null,
+        error: { message: 'Could not resolve applicant reference number: ' + (profileError?.message || 'not found') },
+      };
+    }
+
+    const referenceNumber = profileData.reference_number;
     const timestamp = Date.now();
     const sanitized = dto.file_name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const filePath = `${dto.applicant_id}/${timestamp}_${sanitized}`;
+    const filePath = `${referenceNumber}/${timestamp}_${sanitized}`;
 
     // Upload to Supabase Storage
     const { error: storageError } = await supabase.storage
