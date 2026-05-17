@@ -2,23 +2,8 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "jsx": "react-native",
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "moduleResolution": "bundler",
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
-    "noEmit": true,
-    "isolatedModules": true
-  },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "App.tsx",
-    "index.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+    "noImplicitAny": true,
+    "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true
+  }
 }
-

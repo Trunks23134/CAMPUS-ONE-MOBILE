@@ -1,35 +1,35 @@
-import 'react-native-gesture-handler';
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { Platform, View } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import RootNavigator from './src/navigation/RootNavigator';
-import { loadFonts } from './src/theme/fonts';
-import { AuthProvider } from './src/context/AuthContext';
+import "react-native-reanimated";
+import "react-native-gesture-handler";
+import React, { useState } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { StatusBar } from "expo-status-bar";
+import LandingPage from "./LandingPage";
+import AlumniDrawerNavigator from "./navigation/AlumniDrawerNavigator";
+import { darkTheme, lightTheme } from "./theme";
 
-export default function App() {
-  const [fontsLoaded, setFontsLoaded] = React.useState(false);
+type Page = "landing" | "dashboard";
 
-  React.useEffect(() => {
-    loadFonts()
-      .then(() => setFontsLoaded(true))
-      .catch((error) => {
-        console.error('Font loading failed:', error);
-        setFontsLoaded(true);
-      });
-  }, []);
-
-  if (!fontsLoaded && Platform.OS !== 'web') {
-    return <View style={{ flex: 1 }} />;
-  }
+export default function App(): React.JSX.Element {
+  const [page, setPage] = useState<Page>("landing");
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const theme = isDarkMode ? darkTheme : lightTheme;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
-      </AuthProvider>
+      <StatusBar style={page === "landing" ? "dark" : isDarkMode ? "light" : "dark"} />
+      {page === "landing" ? (
+        <LandingPage isDarkMode={false} theme={lightTheme} onContinue={() => setPage("dashboard")} />
+      ) : (
+        <AlumniDrawerNavigator
+          theme={theme}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={setIsDarkMode}
+          onSignOut={() => setPage("landing")}
+          userDisplayName="John Doe"
+          userFullName="John Doe"
+          userEmail="jertznaval57@gmail.com"
+        />
+      )}
     </GestureHandlerRootView>
   );
 }
