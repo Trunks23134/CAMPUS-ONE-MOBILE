@@ -8,6 +8,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -69,6 +71,7 @@ export default function ProgramSelection({ navigation, route }: Props) {
   );
   const [otherTrack, setOtherTrack] = useState(initialData?.otherTrack || '');
   const [loading, setLoading] = useState(false);
+  const [activePicker, setActivePicker] = useState<'dept' | 'prog' | null>(null);
 
   const getAvailablePrograms = (): CollegeProgram[] => {
     if (!collegeDepartment) return [];
@@ -282,22 +285,16 @@ export default function ProgramSelection({ navigation, route }: Props) {
             {/* Department Selection */}
             <View style={styles.field}>
               <Text style={styles.label}>College Department <Text style={styles.required}>*</Text></Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={collegeDepartment ?? ''}
-                  onValueChange={(value) => {
-                    setCollegeDepartment(value as CollegeDepartment);
-                    setCollegeProgram(null); // Reset program when department changes
-                  }}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Select a department..." value="" />
-                  {COLLEGE_DEPARTMENTS.map((dept) => (
-                    <Picker.Item key={dept} label={dept} value={dept} />
-                  ))}
-                  <Picker.Item label="Others (Please specify)" value="Others" />
-                </Picker>
-              </View>
+              <TouchableOpacity
+                style={styles.customPickerButton}
+                onPress={() => setActivePicker('dept')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.customPickerText, !collegeDepartment && styles.customPickerPlaceholder]}>
+                  {collegeDepartment || 'Select a department...'}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color="#6b7280" />
+              </TouchableOpacity>
             </View>
 
             {/* Other Department Text Entry */}
@@ -317,23 +314,17 @@ export default function ProgramSelection({ navigation, route }: Props) {
             {/* Program Selection */}
             <View style={styles.field}>
               <Text style={styles.label}>Program / Course <Text style={styles.required}>*</Text></Text>
-              <View style={[styles.pickerContainer, !collegeDepartment && styles.pickerDisabled]}>
-                <Picker
-                  selectedValue={collegeProgram ?? ''}
-                  onValueChange={(value) => setCollegeProgram(value as CollegeProgram)}
-                  enabled={!!collegeDepartment}
-                  style={styles.picker}
-                >
-                  <Picker.Item
-                    label={collegeDepartment ? 'Select a program...' : 'Select a department first'}
-                    value=""
-                  />
-                  {availablePrograms.map((prog) => (
-                    <Picker.Item key={prog} label={prog} value={prog} />
-                  ))}
-                  <Picker.Item label="Others (Please specify)" value="Others" />
-                </Picker>
-              </View>
+              <TouchableOpacity
+                style={[styles.customPickerButton, !collegeDepartment && styles.customPickerDisabled]}
+                onPress={() => collegeDepartment && setActivePicker('prog')}
+                disabled={!collegeDepartment}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.customPickerText, !collegeProgram && styles.customPickerPlaceholder]}>
+                  {collegeProgram || (collegeDepartment ? 'Select a program...' : 'Select a department first')}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color="#6b7280" />
+              </TouchableOpacity>
             </View>
 
             {/* Other Program Text Entry */}
@@ -402,6 +393,133 @@ export default function ProgramSelection({ navigation, route }: Props) {
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
         </View>
+        {/* Selection Modal */}
+        <Modal
+          visible={activePicker !== null}
+          animationType="slide"
+          transparent={true}
+          statusBarTranslucent={true}
+          onRequestClose={() => setActivePicker(null)}
+        >
+          <Pressable style={styles.modalOverlay} onPress={() => setActivePicker(null)}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {activePicker === 'dept' ? 'Select College Department' : 'Select Program / Course'}
+                </Text>
+                <TouchableOpacity onPress={() => setActivePicker(null)}>
+                  <Ionicons name="close" size={24} color="#1f2937" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView contentContainerStyle={styles.modalScroll}>
+                {activePicker === 'dept' ? (
+                  <>
+                    {COLLEGE_DEPARTMENTS.map((dept) => (
+                      <TouchableOpacity
+                        key={dept}
+                        style={[
+                          styles.modalOption,
+                          collegeDepartment === dept && styles.modalOptionSelected,
+                        ]}
+                        onPress={() => {
+                          setCollegeDepartment(dept);
+                          setCollegeProgram(null);
+                          setActivePicker(null);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.modalOptionText,
+                            collegeDepartment === dept && styles.modalOptionTextSelected,
+                          ]}
+                        >
+                          {dept}
+                        </Text>
+                        {collegeDepartment === dept && (
+                          <Ionicons name="checkmark" size={20} color="#F59E0B" />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                    <TouchableOpacity
+                      style={[
+                        styles.modalOption,
+                        collegeDepartment === 'Others' && styles.modalOptionSelected,
+                      ]}
+                      onPress={() => {
+                        setCollegeDepartment('Others');
+                        setCollegeProgram(null);
+                        setActivePicker(null);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.modalOptionText,
+                          collegeDepartment === 'Others' && styles.modalOptionTextSelected,
+                        ]}
+                      >
+                        Others (Please specify)
+                      </Text>
+                      {collegeDepartment === 'Others' && (
+                        <Ionicons name="checkmark" size={20} color="#F59E0B" />
+                      )}
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    {availablePrograms.map((prog) => (
+                      <TouchableOpacity
+                        key={prog}
+                        style={[
+                          styles.modalOption,
+                          collegeProgram === prog && styles.modalOptionSelected,
+                        ]}
+                        onPress={() => {
+                          setCollegeProgram(prog);
+                          setActivePicker(null);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.modalOptionText,
+                            collegeProgram === prog && styles.modalOptionTextSelected,
+                          ]}
+                        >
+                          {prog}
+                        </Text>
+                        {collegeProgram === prog && (
+                          <Ionicons name="checkmark" size={20} color="#F59E0B" />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                    <TouchableOpacity
+                      style={[
+                        styles.modalOption,
+                        collegeProgram === 'Others' && styles.modalOptionSelected,
+                      ]}
+                      onPress={() => {
+                        setCollegeProgram('Others');
+                        setActivePicker(null);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.modalOptionText,
+                          collegeProgram === 'Others' && styles.modalOptionTextSelected,
+                        ]}
+                      >
+                        Others (Please specify)
+                      </Text>
+                      {collegeProgram === 'Others' && (
+                        <Ionicons name="checkmark" size={20} color="#F59E0B" />
+                      )}
+                    </TouchableOpacity>
+                  </>
+                )}
+              </ScrollView>
+            </View>
+          </Pressable>
+        </Modal>
       </SafeAreaView>
     );
   }
@@ -638,19 +756,82 @@ const styles = StyleSheet.create({
   required: {
     color: '#ef4444',
   },
-  pickerContainer: {
+  customPickerButton: {
+    height: 48,
     borderWidth: 1,
     borderColor: '#e5e7eb',
     borderRadius: 12,
-    backgroundColor: '#f9fafb',
-    overflow: 'hidden',
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  pickerDisabled: {
+  customPickerDisabled: {
     backgroundColor: '#f3f4f6',
     opacity: 0.6,
   },
-  picker: {
-    height: 48,
+  customPickerText: {
+    fontSize: 14,
+    color: '#1f2937',
+    fontWeight: '500',
+  },
+  customPickerPlaceholder: {
+    color: '#9ca3af',
+    fontWeight: 'normal',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
+    maxHeight: '75%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    paddingBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  modalScroll: {
+    gap: 8,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#f9fafb',
+    marginBottom: 8,
+  },
+  modalOptionSelected: {
+    backgroundColor: '#FFFBEB',
+  },
+  modalOptionText: {
+    fontSize: 14,
+    color: '#4b5563',
+    fontWeight: '500',
+  },
+  modalOptionTextSelected: {
+    color: '#92400E',
+    fontWeight: 'bold',
   },
   input: {
     height: 48,

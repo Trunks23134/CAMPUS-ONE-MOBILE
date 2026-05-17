@@ -162,9 +162,11 @@ export default function DocumentUpload({ navigation, route }: Props) {
   };
 
   const canContinue = (): boolean => {
-    // For testing and flexibility, we allow continuing even if documents are missing.
-    // They can be uploaded later through the tracking system.
-    return true; 
+    if (requirements.length === 0) return true;
+    return requirements.every((r) => {
+      const state = docStates[r.id];
+      return state && state.status !== 'not_uploaded';
+    });
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
