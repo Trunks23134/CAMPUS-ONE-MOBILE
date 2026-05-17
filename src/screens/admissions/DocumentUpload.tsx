@@ -32,7 +32,7 @@ interface Props {
       applicantType: ApplicantType;
       applicantId: string;
       onSuccess: (data: any) => void;
-      onBack: () => void;
+      onBack: (partialData?: any) => void;
       initialData?: any;
     };
   };

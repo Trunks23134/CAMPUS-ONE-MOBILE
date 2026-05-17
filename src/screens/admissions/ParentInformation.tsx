@@ -76,67 +76,46 @@ export default function ParentInformation({ navigation, route }: Props) {
     console.log('[ParentInformation] Starting validation...');
     const errs: Record<string, string> = {};
 
-    // A parent/guardian info is considered "provided" if it has at least a name
-    const hasFatherName = !!form.fatherName.trim();
-    const hasMotherName = !!form.motherName.trim();
-    const hasGuardianName = !!form.guardianName.trim();
-
-    // If any part of Father info is touched, Name, Address, and Contact are required
-    if (hasFatherName || form.fatherAddress.trim() || form.fatherContact.trim()) {
-      if (!form.fatherName.trim()) errs.fatherName = "Father's name is required";
-      if (!form.fatherAddress.trim()) errs.fatherAddress = "Father's address is required";
-      if (!form.fatherContact.trim()) errs.fatherContact = "Father's contact is required";
+    // Father Information
+    if (!form.fatherName.trim()) {
+      errs.fatherName = "Father's name is required";
+    }
+    if (!form.fatherAddress.trim()) {
+      errs.fatherAddress = "Father's address is required";
+    }
+    if (!form.fatherContact.trim()) {
+      errs.fatherContact = "Father's contact number is required";
+    } else if (!/^\d{11}$/.test(form.fatherContact)) {
+      errs.fatherContact = "Must be exactly 11 digits (e.g., 09123456789)";
     }
 
-    // If any part of Mother info is touched, Name, Address, and Contact are required
-    if (hasMotherName || form.motherAddress.trim() || form.motherContact.trim()) {
-      if (!form.motherName.trim()) errs.motherName = "Mother's name is required";
-      if (!form.motherAddress.trim()) errs.motherAddress = "Mother's address is required";
-      if (!form.motherContact.trim()) errs.motherContact = "Mother's contact is required";
+    // Mother Information
+    if (!form.motherName.trim()) {
+      errs.motherName = "Mother's name is required";
+    }
+    if (!form.motherAddress.trim()) {
+      errs.motherAddress = "Mother's address is required";
+    }
+    if (!form.motherContact.trim()) {
+      errs.motherContact = "Mother's contact number is required";
+    } else if (!/^\d{11}$/.test(form.motherContact)) {
+      errs.motherContact = "Must be exactly 11 digits (e.g., 09123456789)";
     }
 
-    // Guardian is optional unless neither parent is provided
-    if (hasGuardianName || form.guardianAddress.trim()) {
+    // Guardian Information is optional
+    if (form.guardianName.trim() || form.guardianAddress.trim()) {
       if (!form.guardianName.trim()) errs.guardianName = "Guardian's name is required";
       if (!form.guardianAddress.trim()) errs.guardianAddress = "Guardian's address is required";
     }
 
-    // Check if at least one complete entity is provided
-    const isFatherComplete = hasFatherName && !!form.fatherAddress.trim() && !!form.fatherContact.trim();
-    const isMotherComplete = hasMotherName && !!form.motherAddress.trim() && !!form.motherContact.trim();
-    const isGuardianComplete = hasGuardianName && !!form.guardianAddress.trim();
-
-    if (!isFatherComplete && !isMotherComplete && !isGuardianComplete) {
-      console.log('[ParentInformation] Validation failed: No complete parent/guardian info.');
-      
-      let missingMsg = 'Please provide complete information (Name, Address, and Contact) for at least one parent or a guardian.';
-      if (hasFatherName && !isFatherComplete) missingMsg = "Please complete the Father's information (Address and Contact are missing).";
-      else if (hasMotherName && !isMotherComplete) missingMsg = "Please complete the Mother's information (Address and Contact are missing).";
-      else if (hasGuardianName && !isGuardianComplete) missingMsg = "Please complete the Guardian's information (Address is missing).";
-
-      Alert.alert('Information Required', missingMsg);
-      
-      // If nothing is provided at all, point them to Father's name
-      if (!hasFatherName && !hasMotherName && !hasGuardianName) {
-        errs.fatherName = "Please provide at least one parent's or guardian's information";
-      }
-      
+    if (Object.keys(errs).length > 0) {
+      Alert.alert('Incomplete Information', 'Please fill in all mandatory fields (*) with valid information.');
       setErrors(errs);
       return false;
     }
 
-    // HIDDEN ERROR FIX: If at least one section is complete, we ignore errors in other "partially filled" sections
-    // to prevent blocking the user.
-    if (isFatherComplete || isMotherComplete || isGuardianComplete) {
-      console.log('[ParentInformation] Validation: One section is complete. Proceeding and ignoring partial errors.');
-      setErrors({}); // Clear any partial errors
-      return true;
-    }
-
-    setErrors(errs);
-    const isValid = Object.keys(errs).length === 0;
-    console.log('[ParentInformation] Validation finished. isValid:', isValid, 'Errors:', errs);
-    return isValid;
+    setErrors({});
+    return true;
   };
 
   const handleSave = async () => {
@@ -274,9 +253,10 @@ export default function ParentInformation({ navigation, route }: Props) {
               style={[styles.input, errors.fatherContact && styles.inputError]}
               value={form.fatherContact}
               onChangeText={setField('fatherContact')}
-              placeholder="09XX XXX XXXX"
+              placeholder="09123456789"
               placeholderTextColor="#9ca3af"
-              keyboardType="phone-pad"
+              keyboardType="numeric"
+              maxLength={11}
             />
             {errors.fatherContact ? <Text style={styles.errorText}>{errors.fatherContact}</Text> : null}
           </View>
@@ -320,9 +300,10 @@ export default function ParentInformation({ navigation, route }: Props) {
               style={[styles.input, errors.motherContact && styles.inputError]}
               value={form.motherContact}
               onChangeText={setField('motherContact')}
-              placeholder="09XX XXX XXXX"
+              placeholder="09123456789"
               placeholderTextColor="#9ca3af"
-              keyboardType="phone-pad"
+              keyboardType="numeric"
+              maxLength={11}
             />
             {errors.motherContact ? <Text style={styles.errorText}>{errors.motherContact}</Text> : null}
           </View>

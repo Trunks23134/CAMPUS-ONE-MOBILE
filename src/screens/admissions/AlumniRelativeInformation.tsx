@@ -22,8 +22,9 @@ interface Props {
       schoolLevel: SchoolLevel;
       applicantType: ApplicantType;
       applicantId: string;
-      onSuccess: () => void;
-      onBack: () => void;
+      onSuccess: (data: any) => void;
+      onBack: (partialData?: any) => void;
+      initialData?: any;
     };
   };
 }

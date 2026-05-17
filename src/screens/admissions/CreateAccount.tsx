@@ -46,7 +46,7 @@ export default function CreateAccount({ navigation, route }: Props) {
     if (!validateEmail()) return;
 
     // Check if Supabase is actually configured
-    const isConfigured = !supabase.supabaseUrl.includes('placeholder');
+    const isConfigured = !(supabase as any).supabaseUrl.includes('placeholder');
     if (!isConfigured) {
       Alert.alert(
         'Configuration Error',

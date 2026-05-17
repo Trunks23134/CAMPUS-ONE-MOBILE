@@ -16,6 +16,7 @@ export interface ApplicationStatus {
   reviewed_at: string | null;
   rejection_reason: string | null;
   created_at: string;
+  program?: string | null;
 }
 
 export interface ApplicationDocument {

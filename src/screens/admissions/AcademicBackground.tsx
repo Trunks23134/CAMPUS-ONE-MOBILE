@@ -25,7 +25,7 @@ interface Props {
       applicantType: ApplicantType;
       applicantId: string;
       onSuccess: (data: any) => void;
-      onBack: () => void;
+      onBack: (partialData?: any) => void;
       initialData?: any;
     };
   };
@@ -48,7 +48,7 @@ function getGradeLevels(schoolLevel: SchoolLevel, applicantType: ApplicantType):
       return base;
     }
     case 'Senior High School':
-      return ['Grade 11', 'Grade 12'];
+      return ['Primary School', 'Elementary', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'];
     case 'Junior High School':
       return ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'];
     case 'Elementary':
@@ -71,7 +71,7 @@ function generateYearOptions(): string[] {
 
 export default function AcademicBackground({ navigation, route }: Props) {
   const { schoolLevel, applicantType, applicantId, onSuccess, onBack, initialData } = route.params;
-  const gradeLevels = getGradeLevels(schoolLevel);
+  const gradeLevels = getGradeLevels(schoolLevel, applicantType);
   const yearOptions = generateYearOptions();
 
   const [grades, setGrades] = useState<GradeEntry[]>(() => {
@@ -88,7 +88,7 @@ export default function AcademicBackground({ navigation, route }: Props) {
     // If we have persisted data, prioritize it completely
     if (initialData?.academicBackground && initialData.academicBackground.length > 0) {
       // Create a map of persisted data by level for easy lookup
-      const persistedMap = new Map(
+      const persistedMap = new Map<string, any>(
         initialData.academicBackground.map((entry: any) => [entry.grade_level, entry])
       );
 
@@ -180,13 +180,17 @@ export default function AcademicBackground({ navigation, route }: Props) {
       if (!grade.schoolName.trim()) {
         errs[`${grade.id}-schoolName`] = 'Required';
       }
-      if (!grade.completionYear.trim()) {
+      
+      const yr = grade.completionYear.trim();
+      if (!yr) {
         errs[`${grade.id}-completionYear`] = 'Required';
+      } else if (yr.length !== 4 || !/^\d{4}$/.test(yr)) {
+        errs[`${grade.id}-completionYear`] = 'Must be a 4-digit year (e.g., 2020)';
       }
     });
 
     if (Object.keys(errs).length > 0) {
-      Alert.alert('Incomplete Information', 'Please provide the level, school name, and completion year for all entries.');
+      Alert.alert('Incomplete Information', 'Please provide the school name and a valid 4-digit completion year for all education levels.');
     }
 
     setErrors(errs);
@@ -299,18 +303,15 @@ export default function AcademicBackground({ navigation, route }: Props) {
                 {/* Completion Year */}
                 <View style={styles.field}>
                   <Text style={styles.label}>Completion Year <Text style={styles.required}>*</Text></Text>
-                  <View style={[styles.pickerContainer, errors[`${grade.id}-completionYear`] && styles.inputError]}>
-                    <Picker
-                      selectedValue={grade.completionYear}
-                      onValueChange={(value) => updateGrade(grade.id, 'completionYear', value)}
-                      style={styles.picker}
-                    >
-                      <Picker.Item label="Select year" value="" />
-                      {yearOptions.map((year) => (
-                        <Picker.Item key={year} label={year} value={year} />
-                      ))}
-                    </Picker>
-                  </View>
+                  <TextInput
+                    style={[styles.input, errors[`${grade.id}-completionYear`] && styles.inputError]}
+                    value={grade.completionYear}
+                    onChangeText={(value) => updateGrade(grade.id, 'completionYear', value)}
+                    placeholder="YYYY (e.g., 2020)"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="numeric"
+                    maxLength={4}
+                  />
                   {errors[`${grade.id}-completionYear`] ? (
                     <Text style={styles.errorText}>{errors[`${grade.id}-completionYear`]}</Text>
                   ) : null}

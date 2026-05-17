@@ -15,6 +15,7 @@ import { Picker } from '@react-native-picker/picker';
 import type {
   SchoolLevel,
   ApplicantType,
+  CollegeDepartment,
   CollegeProgram,
   SeniorHighTrack,
 } from '../../types/admissions.types';
@@ -33,12 +34,9 @@ interface Props {
       schoolLevel: SchoolLevel;
       applicantType: ApplicantType;
       applicantId: string;
-      onSuccess: (data: {
-        collegeDepartment?: CollegeDepartment;
-        collegeProgram?: CollegeProgram;
-        seniorHighTrack?: SeniorHighTrack;
-      }) => void;
-      onBack: () => void;
+      onSuccess: (data: any) => void;
+      onBack: (partialData?: any) => void;
+      initialData?: any;
     };
   };
 }
@@ -46,7 +44,7 @@ interface Props {
 export default function ProgramSelection({ navigation, route }: Props) {
   const { schoolLevel, applicantType, applicantId, onSuccess, onBack, initialData } = route.params;
 
-  const [collegeDepartment, setCollegeDepartment] = useState<CollegeDepartment | null>(
+  const [collegeDepartment, setCollegeDepartment] = useState<any>(
     initialData?.collegeDepartment 
       ? (COLLEGE_DEPARTMENTS.includes(initialData.collegeDepartment as any) ? initialData.collegeDepartment as any : 'Others')
       : null
@@ -56,7 +54,7 @@ export default function ProgramSelection({ navigation, route }: Props) {
       ? initialData.collegeDepartment
       : ''
   );
-  const [collegeProgram, setCollegeProgram] = useState<CollegeProgram | null>(
+  const [collegeProgram, setCollegeProgram] = useState<any>(
     initialData?.collegeProgram 
       ? (getProgramsForDepartment(collegeDepartment as any).includes(initialData.collegeProgram as any) ? initialData.collegeProgram as any : 'Others')
       : null

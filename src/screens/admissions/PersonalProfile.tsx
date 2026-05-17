@@ -98,8 +98,8 @@ export default function PersonalProfile({ navigation, route }: Props) {
 
     if (!form.mobileNumber.trim()) {
       errs.mobileNumber = 'Mobile number is required';
-    } else if (!/^[0-9+\-\s()]{7,15}$/.test(form.mobileNumber)) {
-      errs.mobileNumber = 'Enter a valid mobile number';
+    } else if (!/^\d{11}$/.test(form.mobileNumber)) {
+      errs.mobileNumber = 'Mobile number must be exactly 11 digits (e.g., 09123456789)';
     }
 
     if (!form.street.trim()) errs.street = 'Street address is required';
@@ -311,9 +311,10 @@ export default function PersonalProfile({ navigation, route }: Props) {
               style={[styles.input, errors.mobileNumber && styles.inputError]}
               value={form.mobileNumber}
               onChangeText={setField('mobileNumber')}
-              placeholder="09XX XXX XXXX"
+              placeholder="09123456789"
               placeholderTextColor="#9ca3af"
-              keyboardType="phone-pad"
+              keyboardType="numeric"
+              maxLength={11}
             />
             {errors.mobileNumber ? <Text style={styles.errorText}>{errors.mobileNumber}</Text> : null}
           </View>

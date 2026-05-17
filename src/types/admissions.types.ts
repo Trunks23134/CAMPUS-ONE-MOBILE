@@ -111,6 +111,7 @@ export interface ProgramSelectionDTO {
   college_department?: string;
   college_program?: string;
   senior_high_track?: string;
+  tvl_strand?: string;
 }
 
 export interface DocumentUploadDTO {
@@ -204,5 +205,6 @@ export interface AppSession {
   collegeDepartment: CollegeDepartment | null;
   collegeProgram: CollegeProgram | null;
   seniorHighTrack: SeniorHighTrack | null;
+  tvlStrand: string | null;
   referenceNumber: string | null;
 }

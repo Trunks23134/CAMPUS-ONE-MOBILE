@@ -223,7 +223,7 @@ export default function AdmissionsFlow({ navigation }: Props) {
       
       // Save program selection with nulls in background for data consistency
       saveProgramSelection({
-        applicant_id: applicantId,
+        applicant_id: applicantId!,
         school_level: sessionRef.current.schoolLevel!,
         applicant_type: sessionRef.current.applicantType!,
       });
