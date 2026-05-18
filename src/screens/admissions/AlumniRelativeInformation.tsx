@@ -8,10 +8,11 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
 import type { SchoolLevel, ApplicantType } from '../../types/admissions.types';
 import { saveAlumniRelatives } from '../../services/admissions.service';
 
@@ -84,6 +85,13 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+
+  // States for Custom Select Modal
+  const [selectModalVisible, setSelectModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalOptions, setModalOptions] = useState<string[]>([]);
+  const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
+  const [modalField, setModalField] = useState<keyof AlumniEntry | null>(null);
 
   const updateAlumni = (id: string, field: keyof AlumniEntry, value: string) => {
     let finalValue = value;
@@ -270,18 +278,22 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
               {/* Relationship */}
               <View style={styles.field}>
                 <Text style={styles.label}>Relationship</Text>
-                <View style={[styles.pickerContainer, errors[`${item.id}-relationship`] && styles.inputError]}>
-                  <Picker
-                    selectedValue={item.relationship}
-                    onValueChange={(value) => updateAlumni(item.id, 'relationship', value)}
-                    style={styles.picker}
-                  >
-                    <Picker.Item label="Select relationship" value="" />
-                    {RELATIONSHIP_OPTIONS.map((rel) => (
-                      <Picker.Item key={rel} label={rel} value={rel} />
-                    ))}
-                  </Picker>
-                </View>
+                <TouchableOpacity
+                  style={[styles.inputDropdown, errors[`${item.id}-relationship`] && styles.inputError]}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setActiveEntryId(item.id);
+                    setModalTitle('Select Relationship');
+                    setModalOptions(RELATIONSHIP_OPTIONS);
+                    setModalField('relationship');
+                    setSelectModalVisible(true);
+                  }}
+                >
+                  <Text style={[styles.inputDropdownText, !item.relationship && styles.placeholderText]}>
+                    {item.relationship || 'Select relationship'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="#9ca3af" />
+                </TouchableOpacity>
                 {errors[`${item.id}-relationship`] ? (
                   <Text style={styles.errorText}>{errors[`${item.id}-relationship`]}</Text>
                 ) : null}
@@ -305,18 +317,22 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
               {/* Batch Year */}
               <View style={styles.field}>
                 <Text style={styles.label}>Batch Year</Text>
-                <View style={[styles.pickerContainer, errors[`${item.id}-batch`] && styles.inputError]}>
-                  <Picker
-                    selectedValue={item.batch}
-                    onValueChange={(value) => updateAlumni(item.id, 'batch', value)}
-                    style={styles.picker}
-                  >
-                    <Picker.Item label="Select year" value="" />
-                    {batchYears.map((year) => (
-                      <Picker.Item key={year} label={year} value={year} />
-                    ))}
-                  </Picker>
-                </View>
+                <TouchableOpacity
+                  style={[styles.inputDropdown, errors[`${item.id}-batch`] && styles.inputError]}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setActiveEntryId(item.id);
+                    setModalTitle('Select Batch Year');
+                    setModalOptions(batchYears);
+                    setModalField('batch');
+                    setSelectModalVisible(true);
+                  }}
+                >
+                  <Text style={[styles.inputDropdownText, !item.batch && styles.placeholderText]}>
+                    {item.batch || 'Select year'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="#9ca3af" />
+                </TouchableOpacity>
                 {errors[`${item.id}-batch`] ? (
                   <Text style={styles.errorText}>{errors[`${item.id}-batch`]}</Text>
                 ) : null}
@@ -347,6 +363,47 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Custom Option Select Modal */}
+      <Modal
+        transparent
+        visible={selectModalVisible}
+        animationType="fade"
+        onRequestClose={() => setSelectModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setSelectModalVisible(false)}
+        >
+          <View style={styles.selectModalContent}>
+            <View style={styles.selectModalHeader}>
+              <Text style={styles.selectModalTitle}>{modalTitle}</Text>
+              <TouchableOpacity onPress={() => setSelectModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={modalOptions}
+              keyExtractor={(item) => item}
+              style={{ maxHeight: 300 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.selectOption}
+                  onPress={() => {
+                    if (activeEntryId && modalField) {
+                      updateAlumni(activeEntryId, modalField, item);
+                    }
+                    setSelectModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.selectOptionText}>{item}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Footer */}
       <View style={styles.footer}>
@@ -523,16 +580,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9fafb',
     color: '#1f2937',
   },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    backgroundColor: '#f9fafb',
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 48,
-  },
   inputError: {
     borderColor: '#f87171',
     backgroundColor: '#fef2f2',
@@ -541,6 +588,68 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#ef4444',
     marginTop: 4,
+  },
+  inputDropdown: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#f9fafb',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  inputDropdownText: {
+    fontSize: 14,
+    color: '#1f2937',
+  },
+  placeholderText: {
+    color: '#9ca3af',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  selectModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 320,
+    paddingVertical: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  selectModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    marginBottom: 8,
+  },
+  selectModalTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+  },
+  selectOption: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f9fafb',
+  },
+  selectOptionText: {
+    fontSize: 14,
+    color: '#374151',
   },
   addButton: {
     flexDirection: 'row',

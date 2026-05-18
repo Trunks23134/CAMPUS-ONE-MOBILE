@@ -223,11 +223,12 @@ export default function ParentInformation({ navigation, route }: Props) {
 
           <View style={styles.field}>
             <Text style={styles.label}>Father's Name <Text style={styles.required}>*</Text></Text>
+            <Text style={styles.formatGuide}>Format: First Name Middle Name, Last Name</Text>
             <TextInput
               style={[styles.input, errors.fatherName && styles.inputError]}
               value={form.fatherName}
               onChangeText={setField('fatherName')}
-              placeholder="Enter father's full name"
+              placeholder="Juan Santos, Dela Cruz"
               placeholderTextColor="#9ca3af"
             />
             {errors.fatherName ? <Text style={styles.errorText}>{errors.fatherName}</Text> : null}
@@ -270,11 +271,12 @@ export default function ParentInformation({ navigation, route }: Props) {
 
           <View style={styles.field}>
             <Text style={styles.label}>Mother's Name <Text style={styles.required}>*</Text></Text>
+            <Text style={styles.formatGuide}>Format: First Name Middle Name, Last Name</Text>
             <TextInput
               style={[styles.input, errors.motherName && styles.inputError]}
               value={form.motherName}
               onChangeText={setField('motherName')}
-              placeholder="Enter mother's full name"
+              placeholder="Maria Santos, Dela Cruz"
               placeholderTextColor="#9ca3af"
             />
             {errors.motherName ? <Text style={styles.errorText}>{errors.motherName}</Text> : null}
@@ -508,6 +510,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4b5563',
     marginBottom: 6,
+  },
+  formatGuide: {
+    fontSize: 11,
+    color: '#9ca3af',
+    marginBottom: 6,
+    fontStyle: 'italic',
   },
   optional: {
     fontWeight: '400',

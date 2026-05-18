@@ -89,11 +89,18 @@ export default function PersonalProfile({ navigation, route }: Props) {
 
     if (!form.firstName.trim()) errs.firstName = 'First name is required';
     if (!form.lastName.trim()) errs.lastName = 'Last name is required';
+    if (!form.middleName.trim()) errs.middleName = 'Middle name is required';
     
+    const currentYear = new Date().getFullYear();
     if (!form.birthdate && !form.birthdateInput) {
       errs.birthdate = 'Birthdate is required';
-    } else if (!form.birthdate && form.birthdateInput) {
-      errs.birthdate = 'Enter a valid date (MM/DD/YYYY)';
+    } else if (form.birthdateInput && (!form.birthdate || isNaN(form.birthdate.getTime()))) {
+      errs.birthdate = 'Invalid date';
+    } else if (form.birthdate) {
+      const birthYear = form.birthdate.getFullYear();
+      if (birthYear < 1920 || birthYear > currentYear - 2) {
+        errs.birthdate = 'Invalid date';
+      }
     }
 
     if (!form.mobileNumber.trim()) {
@@ -270,15 +277,16 @@ export default function PersonalProfile({ navigation, route }: Props) {
 
           <View style={styles.field}>
             <Text style={styles.label}>
-              Middle Name <Text style={styles.optional}>(optional)</Text>
+              Middle Name <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.middleName && styles.inputError]}
               value={form.middleName}
               onChangeText={setField('middleName')}
               placeholder="Santos"
               placeholderTextColor="#9ca3af"
             />
+            {errors.middleName ? <Text style={styles.errorText}>{errors.middleName}</Text> : null}
           </View>
 
           <View style={styles.field}>

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { ApplicantType, SchoolLevel } from '../../types/admissions.types';
 
 const AVAILABLE: Record<SchoolLevel, ApplicantType[]> = {
-  Kinder: ['Freshman'],
+  Kinder: ['Freshman', 'Transferee', 'Returnee'],
   Elementary: ['Freshman', 'Transferee', 'Returnee'],
   'Junior High School': ['Freshman', 'Transferee', 'Returnee'],
   'Senior High School': ['Freshman', 'Transferee', 'Returnee'],

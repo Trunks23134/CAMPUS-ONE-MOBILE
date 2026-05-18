@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import type { SchoolLevel, ApplicantType } from '../../types/admissions.types';
 import { saveAcademicBackground } from '../../services/admissions.service';
 
@@ -108,6 +109,8 @@ export default function AcademicBackground({ navigation, route }: Props) {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [activeGradeId, setActiveGradeId] = useState<string | null>(null);
 
   // Sync grades when schoolLevel/applicantType changes
   React.useEffect(() => {
@@ -172,6 +175,7 @@ export default function AcademicBackground({ navigation, route }: Props) {
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
+    const currentYear = new Date().getFullYear();
 
     grades.forEach((grade) => {
       if (!grade.level.trim()) {
@@ -186,11 +190,16 @@ export default function AcademicBackground({ navigation, route }: Props) {
         errs[`${grade.id}-completionYear`] = 'Required';
       } else if (yr.length !== 4 || !/^\d{4}$/.test(yr)) {
         errs[`${grade.id}-completionYear`] = 'Must be a 4-digit year (e.g., 2020)';
+      } else {
+        const parsedYear = parseInt(yr, 10);
+        if (parsedYear < 1950 || parsedYear > currentYear + 1) {
+          errs[`${grade.id}-completionYear`] = 'Invalid year';
+        }
       }
     });
 
     if (Object.keys(errs).length > 0) {
-      Alert.alert('Incomplete Information', 'Please provide the school name and a valid 4-digit completion year for all education levels.');
+      Alert.alert('Invalid Information', 'Please provide a valid school name and a realistic completion year for all education levels.');
     }
 
     setErrors(errs);
@@ -303,15 +312,27 @@ export default function AcademicBackground({ navigation, route }: Props) {
                 {/* Completion Year */}
                 <View style={styles.field}>
                   <Text style={styles.label}>Completion Year <Text style={styles.required}>*</Text></Text>
-                  <TextInput
-                    style={[styles.input, errors[`${grade.id}-completionYear`] && styles.inputError]}
-                    value={grade.completionYear}
-                    onChangeText={(value) => updateGrade(grade.id, 'completionYear', value)}
-                    placeholder="YYYY (e.g., 2020)"
-                    placeholderTextColor="#9ca3af"
-                    keyboardType="numeric"
-                    maxLength={4}
-                  />
+                  <View style={[styles.inputContainer, errors[`${grade.id}-completionYear`] && styles.inputError]}>
+                    <TextInput
+                      style={styles.flexInput}
+                      value={grade.completionYear}
+                      onChangeText={(value) => updateGrade(grade.id, 'completionYear', value)}
+                      placeholder="YYYY (e.g., 2020)"
+                      placeholderTextColor="#9ca3af"
+                      keyboardType="numeric"
+                      maxLength={4}
+                    />
+                    <TouchableOpacity
+                      style={styles.calendarIcon}
+                      onPress={() => {
+                        setActiveGradeId(grade.id);
+                        setShowDatePicker(true);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="calendar" size={20} color="#F59E0B" />
+                    </TouchableOpacity>
+                  </View>
                   {errors[`${grade.id}-completionYear`] ? (
                     <Text style={styles.errorText}>{errors[`${grade.id}-completionYear`]}</Text>
                   ) : null}
@@ -321,6 +342,50 @@ export default function AcademicBackground({ navigation, route }: Props) {
           })}
         </View>
       </ScrollView>
+
+      {showDatePicker && (
+        Platform.OS === 'ios' ? (
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => {
+                  setShowDatePicker(false);
+                  setActiveGradeId(null);
+                }}>
+                  <Text style={styles.doneButtonText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={new Date()}
+                mode="date"
+                display="spinner"
+                onChange={(event, selectedDate) => {
+                  if (selectedDate && activeGradeId) {
+                    const yr = selectedDate.getFullYear().toString();
+                    updateGrade(activeGradeId, 'completionYear', yr);
+                  }
+                }}
+                maximumDate={new Date()}
+              />
+            </View>
+          </View>
+        ) : (
+          <DateTimePicker
+            value={new Date()}
+            mode="date"
+            display="default"
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(false);
+              if (selectedDate && activeGradeId) {
+                const yr = selectedDate.getFullYear().toString();
+                updateGrade(activeGradeId, 'completionYear', yr);
+              }
+              setActiveGradeId(null);
+            }}
+            maximumDate={new Date()}
+          />
+        )
+      )}
 
       {/* Footer */}
       <View style={styles.footer}>
@@ -529,6 +594,54 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#ef4444',
     marginTop: 4,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    backgroundColor: '#f9fafb',
+    paddingHorizontal: 4,
+  },
+  flexInput: {
+    flex: 1,
+    height: 48,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: '#1f2937',
+  },
+  calendarIcon: {
+    padding: 10,
+  },
+  modalContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    height: '100%',
+    justifyContent: 'flex-end',
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  doneButtonText: {
+    color: '#F59E0B',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   addButton: {
     flexDirection: 'row',
