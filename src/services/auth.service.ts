@@ -27,6 +27,7 @@ export interface LoginResponse {
 async function detectUserRole(email: string): Promise<UserRole | null> {
   // Check if user is a student
   const { data: student } = await supabase
+    .schema('student')
     .from("student_accounts")
     .select("id, applicant_id")
     .eq("email", email)
@@ -49,6 +50,7 @@ async function detectUserRole(email: string): Promise<UserRole | null> {
 
   // Check professor table
   const { data: professor } = await supabase
+    .schema('faculty')
     .from("professor_users")
     .select("id")
     .eq("email", email)
@@ -60,6 +62,7 @@ async function detectUserRole(email: string): Promise<UserRole | null> {
 
   // Check applicant
   const { data: applicant } = await supabase
+    .schema('applicant')
     .from("applicant_profiles")
     .select("id, status")
     .eq("email", email)
@@ -90,6 +93,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
 
     if (role === "student") {
       const { data: student, error } = await supabase
+        .schema('student')
         .from("student_accounts")
         .select("id, email, applicant_id, password_hash")
         .eq("email", email)
