@@ -11,11 +11,12 @@ export interface ApplicationStatus {
   email: string;
   school_level: string;
   applicant_type: string;
-  status: 'Under Review' | 'Passed' | 'Not Accepted';
+  status: 'Pending Documents' | 'Under Review' | 'Passed' | 'Not Accepted';
   application_submitted_at: string;
   reviewed_at: string | null;
   rejection_reason: string | null;
   created_at: string;
+  program?: string | null;
 }
 
 export interface ApplicationDocument {
@@ -52,8 +53,8 @@ export async function fetchApplicationStatus(
     const { data: appData, error: appError } = await supabase
       .from('applicant_profiles')
       .select('*')
-      .eq('email', email)
-      .eq('reference_number', referenceNumber)
+      .ilike('email', email.trim())
+      .eq('reference_number', referenceNumber.trim())
       .single();
 
     if (appError || !appData) {
@@ -92,24 +93,22 @@ function buildProgressSteps(application: any): ApplicationProgress[] {
   const steps: ApplicationProgress[] = [
     {
       step: 1,
-      label: 'Application Submitted',
+      label: 'Profile Created',
       status: 'completed',
-      date: application.application_submitted_at,
+      date: application.created_at,
     },
     {
       step: 2,
-      label: 'Under Review',
-      status: application.status === 'Under Review' ? 'current' : 'completed',
-      date: application.application_submitted_at,
+      label: 'Document Submission',
+      status: application.status === 'pending' ? 'current' : 'completed',
+      date: application.application_submitted_at || application.created_at,
     },
     {
       step: 3,
-      label: 'Verified by Admin',
-      status:
-        application.status === 'Passed' || application.status === 'Not Accepted'
-          ? 'completed'
-          : 'pending',
-      date: application.reviewed_at,
+      label: 'Under Review',
+      status: application.status === 'under_review' ? 'current' : 
+              (application.status === 'Passed' || application.status === 'Not Accepted') ? 'completed' : 'pending',
+      date: application.application_submitted_at,
     },
     {
       step: 4,

@@ -9,35 +9,35 @@ import { NotificationPanelProvider } from "../context/NotificationPanelContext";
 import NotificationPanel from "../components/NotificationPanel";
 
 // Core screens
-import DashboardScreen from "../screens/student/dashboard/DashboardScreen";
-import ProfileScreen from "../screens/student/profile/ProfileScreen";
-import CourseDetailsScreen from "../screens/student/general/CourseDetailsScreen";
-import EvaluationScreen from "../screens/student/general/EvaluationScreen";
+import DashboardScreen from "../screens/dashboard/DashboardScreen";
+import ProfileScreen from "../screens/profile/ProfileScreen";
+import CourseDetailsScreen from "../screens/general/CourseDetailsScreen";
+import EvaluationScreen from "../screens/general/EvaluationScreen";
 
 // Enrollment screens
-import OnlineEnrollmentScreen from "../screens/student/enrollment/OnlineEnrollmentScreen";
-import RegularPathEnrollmentScreen from "../screens/student/enrollment/RegularPathEnrollmentScreen";
-import IrregularPathEnrollmentScreen from "../screens/student/enrollment/IrregularPathEnrollmentScreen";
-import BalancePaymentScreen from "../screens/student/enrollment/BalancePaymentScreen";
-import AdvisedCoursesScreen from "../screens/student/enrollment/AdvisedCoursesScreen";
-import AddDropCoursesScreen from "../screens/student/enrollment/AddDropCoursesScreen";
-import DeficienciesScreen from "../screens/student/enrollment/DeficienciesScreen";
+import OnlineEnrollmentScreen from "../screens/enrollment/OnlineEnrollmentScreen";
+import RegularPathEnrollmentScreen from "../screens/enrollment/RegularPathEnrollmentScreen";
+import IrregularPathEnrollmentScreen from "../screens/enrollment/IrregularPathEnrollmentScreen";
+import BalancePaymentScreen from "../screens/enrollment/BalancePaymentScreen";
+import AdvisedCoursesScreen from "../screens/enrollment/AdvisedCoursesScreen";
+import AddDropCoursesScreen from "../screens/enrollment/AddDropCoursesScreen";
+import DeficienciesScreen from "../screens/enrollment/DeficienciesScreen";
 
 // Subject flow + My courses + Notifications
-import EnrollmentSearchScreen from "../screens/student/dashboard/EnrollmentSearchScreen";
-import EnrollmentCartScreen from "../screens/student/dashboard/EnrollmentCartScreen";
-import BrowseSubjectsScreen from "../screens/student/dashboard/BrowseSubjectsScreen";
-import MyCoursesScreen from "../screens/student/dashboard/MyCoursesScreen";
-import NotificationsScreen from "../screens/student/dashboard/NotificationsScreen";
+import EnrollmentSearchScreen from "../screens/dashboard/EnrollmentSearchScreen";
+import EnrollmentCartScreen from "../screens/dashboard/EnrollmentCartScreen";
+import BrowseSubjectsScreen from "../screens/dashboard/BrowseSubjectsScreen";
+import MyCoursesScreen from "../screens/dashboard/MyCoursesScreen";
+import NotificationsScreen from "../screens/dashboard/NotificationsScreen";
 
 // Semestral grades
-import ViewSemestralGradesScreen from "../screens/student/dashboard/ViewSemestralGradesScreen";
+import ViewSemestralGradesScreen from "../screens/dashboard/ViewSemestralGradesScreen";
 
 // Other screens
-import GraduationScreen from "../screens/student/general/GraduationScreen";
-import HelpScreen from "../screens/student/general/HelpScreen";
-import SettingsScreen from "../screens/student/general/SettingsScreen";
-import LogoutScreen from "../screens/student/general/LogoutScreen";
+import GraduationScreen from "../screens/general/GraduationScreen";
+import HelpScreen from "../screens/general/HelpScreen";
+import SettingsScreen from "../screens/general/SettingsScreen";
+import LogoutScreen from "../screens/general/LogoutScreen";
 
 const Drawer = createDrawerNavigator<StudentDrawerParamList>();
 

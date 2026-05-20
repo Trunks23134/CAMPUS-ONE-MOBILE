@@ -20,20 +20,63 @@ export async function createApplicantProfile(
   dto: CreateAccountDTO
 ): Promise<SupabaseResponse<{ id: string }>> {
   const applicantId = generateUUID();
+  const referenceNumber = generateReferenceNumber();
 
-  const { error } = await supabase.from('applicant_profiles').insert({
+  console.log('Inserting Profile:', {
     id: applicantId,
     email: dto.email,
-    school_level: dto.school_level,
-    applicant_type: dto.applicant_type,
-    full_name: '',
-    first_name: '',
-    last_name: '',
-    status: 'Under Review',
+    reference_number: referenceNumber,
   });
 
-  if (error) return { data: null, error: { message: error.message } };
-  return { data: { id: applicantId }, error: null };
+  // Add a 10-second timeout to the request
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Connection timed out. Please check your internet.')), 10000)
+  );
+
+  try {
+    const cleanEmail = dto.email.trim().toLowerCase();
+
+    // 1. Check if email already exists
+    const { data: existingList } = await supabase
+      .from('applicant_profiles')
+      .select('id')
+      .ilike('email', cleanEmail)
+      .limit(1);
+
+    if (existingList && existingList.length > 0) {
+      console.log('Existing applicant found, resuming flow:', existingList[0].id);
+      return { data: { id: existingList[0].id }, error: null };
+    }
+
+    // 2. If not, create new
+    let insertData: any = {
+      id: applicantId,
+      email: cleanEmail,
+      school_level: dto.school_level,
+      applicant_type: dto.applicant_type,
+      reference_number: referenceNumber,
+      status: 'pending',
+    };
+
+    const { error } = (await Promise.race([
+      supabase.from('applicant_profiles').insert(insertData),
+      timeout
+    ])) as any;
+
+    // 3. Safety Fallback: If enum fails, try without status
+    if (error && error.message.includes('enum')) {
+      console.warn('Enum failed, retrying without status field...');
+      delete insertData.status;
+      const { error: retryError } = await supabase.from('applicant_profiles').insert(insertData);
+      if (retryError) return { data: null, error: { message: retryError.message } };
+      return { data: { id: applicantId }, error: null };
+    }
+
+    if (error) return { data: null, error: { message: error.message } };
+    return { data: { id: applicantId }, error: null };
+  } catch (err: any) {
+    return { data: null, error: { message: err.message } };
+  }
 }
 
 // ─── Profile Save ─────────────────────────────────────────────────────────────
@@ -171,9 +214,24 @@ export async function uploadApplicantDocument(
     const response = await fetch(dto.file_uri);
     const blob = await response.blob();
 
+    // Fetch applicant reference number from the database using applicant_id
+    const { data: profileData, error: profileError } = await supabase
+      .from('applicant_profiles')
+      .select('reference_number')
+      .eq('id', dto.applicant_id)
+      .single();
+
+    if (profileError || !profileData || !profileData.reference_number) {
+      return {
+        data: null,
+        error: { message: 'Could not resolve applicant reference number: ' + (profileError?.message || 'not found') },
+      };
+    }
+
+    const referenceNumber = profileData.reference_number;
     const timestamp = Date.now();
     const sanitized = dto.file_name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const filePath = `${dto.applicant_id}/${timestamp}_${sanitized}`;
+    const filePath = `${referenceNumber}/${timestamp}_${sanitized}`;
 
     // Upload to Supabase Storage
     const { error: storageError } = await supabase.storage
@@ -222,21 +280,40 @@ export async function uploadApplicantDocument(
 export async function submitApplication(
   applicantId: string
 ): Promise<SupabaseResponse<{ reference_number: string }>> {
-  const { data, error } = await supabase
-    .from('applicant_profiles')
-    .update({
-      application_submitted_at: new Date().toISOString(),
-      status: 'Under Review',
-    })
-    .eq('id', applicantId)
-    .select('reference_number')
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('applicant_profiles')
+      .update({
+        application_submitted_at: new Date().toISOString(),
+        status: 'under_review',
+      })
+      .eq('id', applicantId)
+      .select('reference_number')
+      .single();
 
-  if (error) {
-    return { data: null, error: { message: error.message } };
+    if (error) {
+      // Safety Fallback: If enum fails, try without status field
+      if (error.message.includes('enum')) {
+        console.warn('Submission status enum failed, retrying without status field...');
+        const { data: retryData, error: retryError } = await supabase
+          .from('applicant_profiles')
+          .update({
+            application_submitted_at: new Date().toISOString(),
+          })
+          .eq('id', applicantId)
+          .select('reference_number')
+          .single();
+
+        if (retryError) return { data: null, error: { message: retryError.message } };
+        return { data: { reference_number: retryData.reference_number }, error: null };
+      }
+      return { data: null, error: { message: error.message } };
+    }
+
+    return { data: { reference_number: data.reference_number }, error: null };
+  } catch (err: any) {
+    return { data: null, error: { message: err.message } };
   }
-
-  return { data: { reference_number: data.reference_number }, error: null };
 }
 
 // ─── Get Documents ────────────────────────────────────────────────────────────
@@ -263,4 +340,12 @@ function generateUUID(): string {
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+// ─── Helper: Generate Reference Number ────────────────────────────────────────
+function generateReferenceNumber(): string {
+  const year = new Date().getFullYear();
+  const random = Math.floor(100000 + Math.random() * 900000); // 6 digits
+  // Standardized prefix "APP-" for all school levels as requested
+  return `APP-${year}-${random}`;
 }

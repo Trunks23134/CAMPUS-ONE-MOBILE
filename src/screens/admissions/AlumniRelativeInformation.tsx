@@ -8,13 +8,13 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
 import type { SchoolLevel, ApplicantType } from '../../types/admissions.types';
 import { saveAlumniRelatives } from '../../services/admissions.service';
-import { shadows } from '../../theme/shadows';
 
 interface Props {
   navigation: any;
@@ -23,8 +23,9 @@ interface Props {
       schoolLevel: SchoolLevel;
       applicantType: ApplicantType;
       applicantId: string;
-      onSuccess: () => void;
-      onBack: () => void;
+      onSuccess: (data: any) => void;
+      onBack: (partialData?: any) => void;
+      initialData?: any;
     };
   };
 }
@@ -85,9 +86,21 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
+  // States for Custom Select Modal
+  const [selectModalVisible, setSelectModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalOptions, setModalOptions] = useState<string[]>([]);
+  const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
+  const [modalField, setModalField] = useState<keyof AlumniEntry | null>(null);
+
   const updateAlumni = (id: string, field: keyof AlumniEntry, value: string) => {
+    let finalValue = value;
+    if (field === 'contactNumber') {
+      // Numbers only
+      finalValue = value.replace(/[^0-9]/g, '');
+    }
     setAlumni((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
+      prev.map((item) => (item.id === id ? { ...item, [field]: finalValue } : item))
     );
     setErrors((prev) => {
       const newErrors = { ...prev };
@@ -127,38 +140,10 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
   };
 
   const validate = (): boolean => {
-    const errs: Record<string, string> = {};
-
-    const hasAnyData = alumni.some(
-      (item) =>
-        item.name.trim() ||
-        item.relationship.trim() ||
-        item.college.trim() ||
-        item.batch.trim() ||
-        item.contactNumber.trim()
-    );
-
-    if (hasAnyData) {
-      alumni.forEach((item) => {
-        const hasPartialData =
-          item.name.trim() ||
-          item.relationship.trim() ||
-          item.college.trim() ||
-          item.batch.trim() ||
-          item.contactNumber.trim();
-
-        if (hasPartialData) {
-          if (!item.name.trim()) errs[`${item.id}-name`] = 'Required';
-          if (!item.relationship.trim()) errs[`${item.id}-relationship`] = 'Required';
-          if (!item.college.trim()) errs[`${item.id}-college`] = 'Required';
-          if (!item.batch.trim()) errs[`${item.id}-batch`] = 'Required';
-          if (!item.contactNumber.trim()) errs[`${item.id}-contactNumber`] = 'Required';
-        }
-      });
-    }
-
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
+    // Requirements: "If there are no relative alumni, leave the fields blank."
+    // We will allow partial or empty data. 
+    setErrors({});
+    return true;
   };
 
   const handleSave = async () => {
@@ -175,6 +160,13 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
         item.contactNumber.trim()
     );
 
+    // If blank, skip database call and proceed immediately
+    if (filledAlumni.length === 0) {
+      setLoading(false);
+      onSuccess({ relatives: [] });
+      return;
+    }
+
     const relatives = filledAlumni.map((item) => ({
       name: item.name,
       relationship: item.relationship,
@@ -183,17 +175,31 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
       contact_number: item.contactNumber,
     }));
 
-    const res = await saveAlumniRelatives({
-      applicant_id: applicantId,
-      relatives,
-    });
+    try {
+      // Add a 10-second timeout to prevent the app from hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timed out. Please check your internet connection.')), 10000)
+      );
 
-    setLoading(false);
+      const res = await Promise.race([
+        saveAlumniRelatives({
+          applicant_id: applicantId,
+          relatives,
+        }),
+        timeoutPromise
+      ]) as any;
 
-    if (res.error) {
-      Alert.alert('Error', res.error.message);
-    } else {
-      onSuccess();
+      setLoading(false);
+
+      if (res.error) {
+        Alert.alert('Error', res.error.message);
+      } else {
+        onSuccess({ relatives });
+      }
+    } catch (error) {
+      setLoading(false);
+      console.error('[AlumniRelativeInformation] Save error:', error);
+      Alert.alert('Error', 'Failed to save information: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -256,7 +262,7 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
 
               {/* Name */}
               <View style={styles.field}>
-                <Text style={styles.label}>Name <Text style={styles.required}>*</Text></Text>
+                <Text style={styles.label}>Name</Text>
                 <TextInput
                   style={[styles.input, errors[`${item.id}-name`] && styles.inputError]}
                   value={item.name}
@@ -271,19 +277,23 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
 
               {/* Relationship */}
               <View style={styles.field}>
-                <Text style={styles.label}>Relationship <Text style={styles.required}>*</Text></Text>
-                <View style={[styles.pickerContainer, errors[`${item.id}-relationship`] && styles.inputError]}>
-                  <Picker
-                    selectedValue={item.relationship}
-                    onValueChange={(value) => updateAlumni(item.id, 'relationship', value)}
-                    style={styles.picker}
-                  >
-                    <Picker.Item label="Select relationship" value="" />
-                    {RELATIONSHIP_OPTIONS.map((rel) => (
-                      <Picker.Item key={rel} label={rel} value={rel} />
-                    ))}
-                  </Picker>
-                </View>
+                <Text style={styles.label}>Relationship</Text>
+                <TouchableOpacity
+                  style={[styles.inputDropdown, errors[`${item.id}-relationship`] && styles.inputError]}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setActiveEntryId(item.id);
+                    setModalTitle('Select Relationship');
+                    setModalOptions(RELATIONSHIP_OPTIONS);
+                    setModalField('relationship');
+                    setSelectModalVisible(true);
+                  }}
+                >
+                  <Text style={[styles.inputDropdownText, !item.relationship && styles.placeholderText]}>
+                    {item.relationship || 'Select relationship'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="#9ca3af" />
+                </TouchableOpacity>
                 {errors[`${item.id}-relationship`] ? (
                   <Text style={styles.errorText}>{errors[`${item.id}-relationship`]}</Text>
                 ) : null}
@@ -291,19 +301,14 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
 
               {/* College */}
               <View style={styles.field}>
-                <Text style={styles.label}>College <Text style={styles.required}>*</Text></Text>
-                <View style={[styles.pickerContainer, errors[`${item.id}-college`] && styles.inputError]}>
-                  <Picker
-                    selectedValue={item.college}
-                    onValueChange={(value) => updateAlumni(item.id, 'college', value)}
-                    style={styles.picker}
-                  >
-                    <Picker.Item label="Select college" value="" />
-                    {COLLEGE_OPTIONS.map((college) => (
-                      <Picker.Item key={college} label={college} value={college} />
-                    ))}
-                  </Picker>
-                </View>
+                <Text style={styles.label}>College</Text>
+                <TextInput
+                  style={[styles.input, errors[`${item.id}-college`] && styles.inputError]}
+                  value={item.college}
+                  onChangeText={(value) => updateAlumni(item.id, 'college', value)}
+                  placeholder="Enter college name"
+                  placeholderTextColor="#9ca3af"
+                />
                 {errors[`${item.id}-college`] ? (
                   <Text style={styles.errorText}>{errors[`${item.id}-college`]}</Text>
                 ) : null}
@@ -311,19 +316,23 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
 
               {/* Batch Year */}
               <View style={styles.field}>
-                <Text style={styles.label}>Batch Year <Text style={styles.required}>*</Text></Text>
-                <View style={[styles.pickerContainer, errors[`${item.id}-batch`] && styles.inputError]}>
-                  <Picker
-                    selectedValue={item.batch}
-                    onValueChange={(value) => updateAlumni(item.id, 'batch', value)}
-                    style={styles.picker}
-                  >
-                    <Picker.Item label="Select year" value="" />
-                    {batchYears.map((year) => (
-                      <Picker.Item key={year} label={year} value={year} />
-                    ))}
-                  </Picker>
-                </View>
+                <Text style={styles.label}>Batch Year</Text>
+                <TouchableOpacity
+                  style={[styles.inputDropdown, errors[`${item.id}-batch`] && styles.inputError]}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setActiveEntryId(item.id);
+                    setModalTitle('Select Batch Year');
+                    setModalOptions(batchYears);
+                    setModalField('batch');
+                    setSelectModalVisible(true);
+                  }}
+                >
+                  <Text style={[styles.inputDropdownText, !item.batch && styles.placeholderText]}>
+                    {item.batch || 'Select year'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="#9ca3af" />
+                </TouchableOpacity>
                 {errors[`${item.id}-batch`] ? (
                   <Text style={styles.errorText}>{errors[`${item.id}-batch`]}</Text>
                 ) : null}
@@ -331,7 +340,7 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
 
               {/* Contact Number */}
               <View style={styles.field}>
-                <Text style={styles.label}>Contact Number <Text style={styles.required}>*</Text></Text>
+                <Text style={styles.label}>Contact Number</Text>
                 <TextInput
                   style={[styles.input, errors[`${item.id}-contactNumber`] && styles.inputError]}
                   value={item.contactNumber}
@@ -354,6 +363,47 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Custom Option Select Modal */}
+      <Modal
+        transparent
+        visible={selectModalVisible}
+        animationType="fade"
+        onRequestClose={() => setSelectModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setSelectModalVisible(false)}
+        >
+          <View style={styles.selectModalContent}>
+            <View style={styles.selectModalHeader}>
+              <Text style={styles.selectModalTitle}>{modalTitle}</Text>
+              <TouchableOpacity onPress={() => setSelectModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={modalOptions}
+              keyExtractor={(item) => item}
+              style={{ maxHeight: 300 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.selectOption}
+                  onPress={() => {
+                    if (activeEntryId && modalField) {
+                      updateAlumni(activeEntryId, modalField, item);
+                    }
+                    setSelectModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.selectOptionText}>{item}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Footer */}
       <View style={styles.footer}>
@@ -469,7 +519,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
     borderWidth: 1,
     borderColor: '#f3f4f6',
   },
@@ -526,16 +580,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9fafb',
     color: '#1f2937',
   },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    backgroundColor: '#f9fafb',
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 48,
-  },
   inputError: {
     borderColor: '#f87171',
     backgroundColor: '#fef2f2',
@@ -544,6 +588,68 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#ef4444',
     marginTop: 4,
+  },
+  inputDropdown: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#f9fafb',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  inputDropdownText: {
+    fontSize: 14,
+    color: '#1f2937',
+  },
+  placeholderText: {
+    color: '#9ca3af',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  selectModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 320,
+    paddingVertical: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  selectModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    marginBottom: 8,
+  },
+  selectModalTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+  },
+  selectOption: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f9fafb',
+  },
+  selectOptionText: {
+    fontSize: 14,
+    color: '#374151',
   },
   addButton: {
     flexDirection: 'row',
@@ -575,13 +681,18 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   submitButton: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#F59E0B',
     borderRadius: 12,
     height: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitButtonDisabled: {
     opacity: 0.6,
@@ -589,12 +700,12 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
     letterSpacing: 0.5,
   },
   backButtonFooter: {
     borderWidth: 2,
-    borderColor: '#d1d5db',
+    borderColor: '#e5e7eb',
     borderRadius: 12,
     height: 44,
     alignItems: 'center',

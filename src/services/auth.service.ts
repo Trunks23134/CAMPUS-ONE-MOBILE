@@ -37,7 +37,7 @@ async function detectUserRole(email: string): Promise<UserRole | null> {
     return "student";
   }
 
-  // Check admin table (public)
+  // Check admin table
   const { data: admin } = await supabase
     .from("admin_users")
     .select("id, role")
@@ -129,7 +129,6 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
       };
     } else if (role === "professor") {
       const { data: professor, error } = await supabase
-        .schema('faculty')
         .from("professor_users")
         .select("id, email, full_name, password_hash")
         .eq("email", email)

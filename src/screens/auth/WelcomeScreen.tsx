@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
-import { shadows } from '../../theme/shadows';
 
 export default function WelcomeScreen({ navigation }: { navigation: any }) {
   const { session, userRole, loading } = useAuth();
@@ -49,7 +48,7 @@ export default function WelcomeScreen({ navigation }: { navigation: any }) {
               <Ionicons name="arrow-forward" size={20} color="#fff" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.alumniButton} onPress={() => navigation.navigate('AlumniRegister')}>
+            <TouchableOpacity style={styles.alumniButton} onPress={() => navigation.navigate('AlumniSignUpFlow')}>
               <View style={styles.buttonContent}>
                 <Ionicons name="school-outline" size={24} color="#F59E0B" />
                 <View style={styles.buttonText}>
@@ -105,7 +104,8 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor: '#F59E0B', borderRadius: 12, padding: 20,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    ...shadows.primaryBtn,
+    shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
   alumniButton: {
     backgroundColor: '#2d3748', borderRadius: 12, padding: 20,

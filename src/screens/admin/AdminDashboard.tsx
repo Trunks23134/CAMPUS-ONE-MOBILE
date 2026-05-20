@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { logout, getCurrentUser, AuthUser } from '../../services/auth.service';
-import { shadows } from '../../theme/shadows';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -167,7 +166,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
     alignItems: 'center',
-    ...shadows.cardMd,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   noticeIconContainer: {
     marginBottom: 24,

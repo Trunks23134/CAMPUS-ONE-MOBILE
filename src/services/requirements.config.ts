@@ -86,6 +86,26 @@ export const REQUIREMENTS_CONFIG: RequirementsMap = {
         required: true,
       },
     ],
+    Shiftee: [
+      {
+        id: 'elem-shiftee-report-card',
+        name: 'Latest Report Card',
+        description: 'Report card from current level/section',
+        required: true,
+      },
+      {
+        id: 'elem-shiftee-form',
+        name: 'Shiftee Application Form',
+        description: 'Completed shiftee application form',
+        required: true,
+      },
+      {
+        id: 'elem-form-137',
+        name: 'Form 137 (School Records)',
+        description: 'Official school records with grades',
+        required: true,
+      },
+    ],
   },
   'Junior High School': {
     Freshman: [

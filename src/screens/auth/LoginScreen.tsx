@@ -7,7 +7,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
-import { shadows } from '../../theme/shadows';
 
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
@@ -112,10 +111,6 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity onPress={() => navigation.navigate('AlumniRegister')} style={{ alignItems: 'center', marginBottom: 16 }}>
-            <Text style={{ color: '#F59E0B', fontWeight: 'bold' }}>Alumni Registration →</Text>
-          </TouchableOpacity>
-
           <View style={styles.helpContainer}>
             <Text style={styles.helpText}>Need help? Contact the admissions office</Text>
           </View>
@@ -163,7 +158,8 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#F59E0B', borderRadius: 12, height: 48,
     justifyContent: 'center', alignItems: 'center',
-    ...shadows.primaryBtnSm,
+    shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 8, elevation: 4,
   },
   buttonDisabled: { opacity: 0.5 },
   buttonContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },

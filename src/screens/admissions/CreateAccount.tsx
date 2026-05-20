@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { SchoolLevel, ApplicantType } from '../../types/admissions.types';
 import { createApplicantProfile } from '../../services/admissions.service';
-import { shadows } from '../../theme/shadows';
+import { supabase } from '../../lib/supabase';
 
 interface Props {
   navigation: any;
@@ -33,8 +33,9 @@ export default function CreateAccount({ navigation, route }: Props) {
   const [loading, setLoading] = useState(false);
 
   const validateEmail = (): boolean => {
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setEmailError('Enter a valid email address');
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !trimmedEmail.includes('@') || !trimmedEmail.includes('.')) {
+      setEmailError('Please enter a valid email address');
       return false;
     }
     setEmailError('');
@@ -44,20 +45,52 @@ export default function CreateAccount({ navigation, route }: Props) {
   const handleSubmit = async () => {
     if (!validateEmail()) return;
 
+    // Check if Supabase is actually configured
+    const isConfigured = !(supabase as any).supabaseUrl.includes('placeholder');
+    if (!isConfigured) {
+      Alert.alert(
+        'Configuration Error',
+        'Your Supabase URL is not set. Please check your .env file and restart Expo.'
+      );
+      return;
+    }
+
     setLoading(true);
+    console.log('Starting account creation for:', email);
 
-    const res = await createApplicantProfile({
-      email,
-      school_level: schoolLevel,
-      applicant_type: applicantType,
-    });
+    try {
+      const res = await createApplicantProfile({
+        email,
+        school_level: schoolLevel,
+        applicant_type: applicantType,
+      });
 
-    setLoading(false);
+      setLoading(false);
 
-    if (res.error) {
-      Alert.alert('Error', res.error.message);
-    } else {
-      onSuccess(res.data!.id, email);
+      if (res.error) {
+        console.error('Database Error:', res.error);
+        Alert.alert('Registration Failed', res.error.message);
+      } else {
+        console.log('Account created successfully:', res.data?.id);
+        if (onSuccess) {
+          onSuccess(res.data!.id, email);
+        } else {
+          console.warn('onSuccess callback is missing, navigating manually');
+          navigation.navigate('PersonalProfile', {
+            applicantId: res.data!.id,
+            email: email,
+            schoolLevel: schoolLevel,
+            applicantType: applicantType
+          });
+        }
+      }
+    } catch (err) {
+      setLoading(false);
+      console.error('Unexpected Error:', err);
+      Alert.alert(
+        'System Error',
+        'An unexpected error occurred. Please check your internet connection and try again.'
+      );
     }
   };
 
@@ -252,7 +285,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
     borderWidth: 1,
     borderColor: '#f3f4f6',
   },
@@ -320,7 +357,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    ...shadows.primaryBtnSm,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitButtonDisabled: {
     opacity: 0.6,

@@ -18,7 +18,6 @@ import {
   type ApplicationProgress,
   type ApplicationDocument,
 } from '../../services/tracking.service';
-import { shadows } from '../../theme/shadows';
 
 interface ApplicationTrackingProps {
   navigation: any;
@@ -65,6 +64,9 @@ export default function ApplicationTracking({ navigation }: ApplicationTrackingP
         return { bg: '#dcfce7', border: '#86efac', text: '#166534' };
       case 'Not Accepted':
         return { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' };
+      case 'pending':
+      case 'Incomplete Requirements':
+        return { bg: '#eff6ff', border: '#bfdbfe', text: '#1e40af' };
       default:
         return { bg: '#fef3c7', border: '#fcd34d', text: '#92400e' };
     }
@@ -76,6 +78,9 @@ export default function ApplicationTracking({ navigation }: ApplicationTrackingP
         return 'checkmark-circle';
       case 'Not Accepted':
         return 'close-circle';
+      case 'pending':
+      case 'Incomplete Requirements':
+        return 'alert-circle';
       default:
         return 'time';
     }
@@ -206,20 +211,35 @@ export default function ApplicationTracking({ navigation }: ApplicationTrackingP
 
           {/* Applicant Details */}
           <View style={styles.detailsCard}>
-            <Text style={styles.cardTitle}>Applicant Details</Text>
+            <Text style={styles.cardTitle}>Application Details</Text>
             <View style={styles.detailsList}>
               <View style={styles.detailItem}>
                 <Ionicons name="person-outline" size={16} color="#6b7280" />
                 <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Full Name</Text>
+                  <Text style={styles.detailLabel}>Applicant Name</Text>
                   <Text style={styles.detailValue}>{status.application.full_name}</Text>
                 </View>
               </View>
               <View style={styles.detailItem}>
-                <Ionicons name="mail-outline" size={16} color="#6b7280" />
+                <Ionicons name="school-outline" size={16} color="#6b7280" />
                 <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Email</Text>
-                  <Text style={styles.detailValue}>{status.application.email}</Text>
+                  <Text style={styles.detailLabel}>Applied Program</Text>
+                  <Text style={styles.detailValue}>{status.application.program || status.application.school_level}</Text>
+                </View>
+              </View>
+              <View style={styles.detailItem}>
+                <Ionicons name="calendar-outline" size={16} color="#6b7280" />
+                <View style={styles.detailContent}>
+                  <Text style={styles.detailLabel}>Submission Date</Text>
+                  <Text style={styles.detailValue}>
+                    {status.application.application_submitted_at 
+                      ? new Date(status.application.application_submitted_at).toLocaleDateString('en-PH', {
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })
+                      : 'Not yet submitted'}
+                  </Text>
                 </View>
               </View>
               <View style={styles.detailItem}>
@@ -260,17 +280,17 @@ export default function ApplicationTracking({ navigation }: ApplicationTrackingP
                     activeOpacity={0.7}
                   >
                     <View style={styles.documentInfo}>
-                      <Ionicons name="document-text-outline" size={16} color="#6b7280" />
+                      <View style={styles.documentStatusDot} />
                       <View style={styles.documentText}>
                         <Text style={styles.documentName} numberOfLines={1}>
                           {doc.document_name}
                         </Text>
-                        <Text style={styles.documentFileName} numberOfLines={1}>
-                          {doc.file_name}
+                        <Text style={styles.documentStatusText}>
+                          Status: {doc.status || 'Submitted'}
                         </Text>
                       </View>
                     </View>
-                    <Ionicons name="download-outline" size={16} color="#F59E0B" />
+                    <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -422,7 +442,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
     borderWidth: 1,
     borderColor: '#f3f4f6',
   },
@@ -501,7 +525,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    ...shadows.cardMd,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
     borderWidth: 1,
     borderColor: '#f3f4f6',
   },
@@ -566,7 +594,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
     borderWidth: 1,
     borderColor: '#f3f4f6',
   },
@@ -658,7 +690,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
     borderWidth: 1,
     borderColor: '#f3f4f6',
   },
@@ -712,7 +748,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
     borderWidth: 1,
     borderColor: '#f3f4f6',
   },
@@ -751,8 +791,14 @@ const styles = StyleSheet.create({
     color: '#1f2937',
     marginBottom: 2,
   },
-  documentFileName: {
+  documentStatusText: {
     fontSize: 11,
     color: '#6b7280',
+  },
+  documentStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#F59E0B',
   },
 });

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function ProfessorClassList({ navigation }: any) {
+export default function ProfessorClassList({ navigation, isEmbedded }: any) {
   const [classes, setClasses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,6 +56,96 @@ export default function ProfessorClassList({ navigation }: any) {
     navigation.navigate('ProfessorClassDetail', { classId });
   };
 
+  const content = (
+    <View style={isEmbedded ? undefined : styles.contentContainer}>
+      {/* Page Header */}
+      <View style={styles.pageHeader}>
+        {!isEmbedded && (
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={20} color="#6b7280" />
+          </TouchableOpacity>
+        )}
+        <View style={styles.pageHeaderText}>
+          <Text style={styles.pageTitle}>My Classes</Text>
+          <Text style={styles.pageSubtitle}>{classes.length} class{classes.length !== 1 ? 'es' : ''}</Text>
+        </View>
+      </View>
+
+      {/* Loading */}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#F59E0B" />
+          <Text style={styles.loadingText}>Loading classes...</Text>
+        </View>
+      ) : classes.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Ionicons name="book-outline" size={48} color="#d1d5db" />
+          <Text style={styles.emptyTitle}>No Classes Assigned</Text>
+          <Text style={styles.emptyText}>You don't have any classes assigned yet.</Text>
+        </View>
+      ) : (
+        <View style={styles.classList}>
+          {classes.map((classItem) => (
+            <TouchableOpacity
+              key={classItem.id}
+              style={styles.classCard}
+              onPress={() => handleViewClass(classItem.id)}
+            >
+              {/* Subject Info */}
+              <View style={styles.classHeader}>
+                <View style={styles.classHeaderTop}>
+                  <View style={styles.codeBadge}>
+                    <Text style={styles.codeText}>{classItem.subject.code}</Text>
+                  </View>
+                  <Text style={styles.sectionText}>Section {classItem.section}</Text>
+                </View>
+                <Text style={styles.className}>{classItem.subject.name}</Text>
+                <Text style={styles.classDescription}>{classItem.subject.description}</Text>
+              </View>
+
+              {/* Class Details */}
+              <View style={styles.classDetails}>
+                <View style={styles.detailRow}>
+                  <View style={styles.detailItem}>
+                    <Ionicons name="people-outline" size={14} color="#6b7280" />
+                    <Text style={styles.detailText}>
+                      {classItem.enrolled_count}/{classItem.max_students} students
+                    </Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Ionicons name="time-outline" size={14} color="#6b7280" />
+                    <Text style={styles.detailText}>{classItem.schedule}</Text>
+                  </View>
+                </View>
+                <View style={styles.detailRow}>
+                  <View style={styles.detailItem}>
+                    <Ionicons name="location-outline" size={14} color="#6b7280" />
+                    <Text style={styles.detailText}>{classItem.room}</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Ionicons name="book-outline" size={14} color="#6b7280" />
+                    <Text style={styles.detailText}>{classItem.subject.units} units</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Semester Info */}
+              <View style={styles.classSemester}>
+                <Text style={styles.semesterText}>
+                  {classItem.subject.semester} • {classItem.subject.school_year}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+
+  if (isEmbedded) {
+    return content;
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
@@ -67,85 +157,7 @@ export default function ProfessorClassList({ navigation }: any) {
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        {/* Page Header */}
-        <View style={styles.pageHeader}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={20} color="#6b7280" />
-          </TouchableOpacity>
-          <View style={styles.pageHeaderText}>
-            <Text style={styles.pageTitle}>My Classes</Text>
-            <Text style={styles.pageSubtitle}>{classes.length} class{classes.length !== 1 ? 'es' : ''}</Text>
-          </View>
-        </View>
-
-        {/* Loading */}
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#F59E0B" />
-            <Text style={styles.loadingText}>Loading classes...</Text>
-          </View>
-        ) : classes.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Ionicons name="book-outline" size={48} color="#d1d5db" />
-            <Text style={styles.emptyTitle}>No Classes Assigned</Text>
-            <Text style={styles.emptyText}>You don't have any classes assigned yet.</Text>
-          </View>
-        ) : (
-          <View style={styles.classList}>
-            {classes.map((classItem) => (
-              <TouchableOpacity
-                key={classItem.id}
-                style={styles.classCard}
-                onPress={() => handleViewClass(classItem.id)}
-              >
-                {/* Subject Info */}
-                <View style={styles.classHeader}>
-                  <View style={styles.classHeaderTop}>
-                    <View style={styles.codeBadge}>
-                      <Text style={styles.codeText}>{classItem.subject.code}</Text>
-                    </View>
-                    <Text style={styles.sectionText}>Section {classItem.section}</Text>
-                  </View>
-                  <Text style={styles.className}>{classItem.subject.name}</Text>
-                  <Text style={styles.classDescription}>{classItem.subject.description}</Text>
-                </View>
-
-                {/* Class Details */}
-                <View style={styles.classDetails}>
-                  <View style={styles.detailRow}>
-                    <View style={styles.detailItem}>
-                      <Ionicons name="people-outline" size={14} color="#6b7280" />
-                      <Text style={styles.detailText}>
-                        {classItem.enrolled_count}/{classItem.max_students} students
-                      </Text>
-                    </View>
-                    <View style={styles.detailItem}>
-                      <Ionicons name="time-outline" size={14} color="#6b7280" />
-                      <Text style={styles.detailText}>{classItem.schedule}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <View style={styles.detailItem}>
-                      <Ionicons name="location-outline" size={14} color="#6b7280" />
-                      <Text style={styles.detailText}>{classItem.room}</Text>
-                    </View>
-                    <View style={styles.detailItem}>
-                      <Ionicons name="book-outline" size={14} color="#6b7280" />
-                      <Text style={styles.detailText}>{classItem.subject.units} units</Text>
-                    </View>
-                  </View>
-                </View>
-
-                {/* Semester Info */}
-                <View style={styles.classSemester}>
-                  <Text style={styles.semesterText}>
-                    {classItem.subject.semester} • {classItem.subject.school_year}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+        {content}
       </ScrollView>
     </SafeAreaView>
   );

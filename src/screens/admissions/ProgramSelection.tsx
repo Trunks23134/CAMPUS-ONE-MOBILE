@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
   Alert,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,17 +20,14 @@ import type {
   CollegeDepartment,
   CollegeProgram,
   SeniorHighTrack,
-  TVLStrand,
 } from '../../types/admissions.types';
 import { saveProgramSelection } from '../../services/admissions.service';
 import {
   COLLEGE_DEPARTMENTS,
   getProgramsForDepartment,
   SENIOR_HIGH_TRACKS,
-  TVL_STRANDS,
   getEducationLevelDisplay,
 } from '../../services/program.config';
-import { shadows } from '../../theme/shadows';
 
 interface Props {
   navigation: any;
@@ -36,25 +36,42 @@ interface Props {
       schoolLevel: SchoolLevel;
       applicantType: ApplicantType;
       applicantId: string;
-      onSuccess: (data: {
-        collegeDepartment?: CollegeDepartment;
-        collegeProgram?: CollegeProgram;
-        seniorHighTrack?: SeniorHighTrack;
-        tvlStrand?: TVLStrand;
-      }) => void;
-      onBack: () => void;
+      onSuccess: (data: any) => void;
+      onBack: (partialData?: any) => void;
+      initialData?: any;
     };
   };
 }
 
 export default function ProgramSelection({ navigation, route }: Props) {
-  const { schoolLevel, applicantType, applicantId, onSuccess, onBack } = route.params;
+  const { schoolLevel, applicantType, applicantId, onSuccess, onBack, initialData } = route.params;
 
-  const [collegeDepartment, setCollegeDepartment] = useState<CollegeDepartment | null>(null);
-  const [collegeProgram, setCollegeProgram] = useState<CollegeProgram | null>(null);
-  const [seniorHighTrack, setSeniorHighTrack] = useState<SeniorHighTrack | null>(null);
-  const [tvlStrand, setTvlStrand] = useState<TVLStrand | null>(null);
+  const [collegeDepartment, setCollegeDepartment] = useState<any>(
+    initialData?.collegeDepartment 
+      ? (COLLEGE_DEPARTMENTS.includes(initialData.collegeDepartment as any) ? initialData.collegeDepartment as any : 'Others')
+      : null
+  );
+  const [otherDepartment, setOtherDepartment] = useState(
+    initialData?.collegeDepartment && !COLLEGE_DEPARTMENTS.includes(initialData.collegeDepartment as any)
+      ? initialData.collegeDepartment
+      : ''
+  );
+  const [collegeProgram, setCollegeProgram] = useState<any>(
+    initialData?.collegeProgram 
+      ? (getProgramsForDepartment(collegeDepartment as any).includes(initialData.collegeProgram as any) ? initialData.collegeProgram as any : 'Others')
+      : null
+  );
+  const [otherProgram, setOtherProgram] = useState(
+    initialData?.collegeProgram && !getProgramsForDepartment(collegeDepartment as any).includes(initialData.collegeProgram as any)
+      ? initialData.collegeProgram
+      : ''
+  );
+  const [seniorHighTrack, setSeniorHighTrack] = useState<SeniorHighTrack | null>(
+    initialData?.seniorHighTrack || null
+  );
+  const [otherTrack, setOtherTrack] = useState(initialData?.otherTrack || '');
   const [loading, setLoading] = useState(false);
+  const [activePicker, setActivePicker] = useState<'dept' | 'prog' | null>(null);
 
   const getAvailablePrograms = (): CollegeProgram[] => {
     if (!collegeDepartment) return [];
@@ -63,11 +80,15 @@ export default function ProgramSelection({ navigation, route }: Props) {
 
   const canContinue = (): boolean => {
     if (schoolLevel === 'College') {
-      return !!collegeDepartment && !!collegeProgram;
+      if (!collegeDepartment) return false;
+      if (collegeDepartment === 'Others' && !otherDepartment.trim()) return false;
+      if (!collegeProgram) return false;
+      if (collegeProgram === 'Others' && !otherProgram.trim()) return false;
+      return true;
     }
     if (schoolLevel === 'Senior High School') {
       if (!seniorHighTrack) return false;
-      if (seniorHighTrack === 'TVL' && !tvlStrand) return false;
+      if (seniorHighTrack === 'Other' && !otherTrack.trim()) return false;
       return true;
     }
     return true;
@@ -79,12 +100,14 @@ export default function ProgramSelection({ navigation, route }: Props) {
     setLoading(true);
 
     if (schoolLevel === 'College') {
+      const finalDept = collegeDepartment === 'Others' ? otherDepartment : collegeDepartment;
+      const finalProgram = collegeProgram === 'Others' ? otherProgram : collegeProgram;
       const res = await saveProgramSelection({
         applicant_id: applicantId,
         school_level: schoolLevel,
         applicant_type: applicantType,
-        college_department: collegeDepartment!,
-        college_program: collegeProgram!,
+        college_department: finalDept!,
+        college_program: finalProgram!,
       });
 
       setLoading(false);
@@ -99,12 +122,12 @@ export default function ProgramSelection({ navigation, route }: Props) {
         collegeProgram: collegeProgram!,
       });
     } else if (schoolLevel === 'Senior High School') {
+      const finalTrack = seniorHighTrack === 'Other' ? otherTrack : seniorHighTrack;
       const res = await saveProgramSelection({
         applicant_id: applicantId,
         school_level: schoolLevel,
         applicant_type: applicantType,
-        senior_high_track: seniorHighTrack!,
-        tvl_strand: seniorHighTrack === 'TVL' ? tvlStrand! : undefined,
+        senior_high_track: finalTrack!,
       });
 
       setLoading(false);
@@ -114,11 +137,7 @@ export default function ProgramSelection({ navigation, route }: Props) {
         return;
       }
 
-      const data: any = { seniorHighTrack: seniorHighTrack! };
-      if (seniorHighTrack === 'TVL') {
-        data.tvlStrand = tvlStrand;
-      }
-      onSuccess(data);
+      onSuccess({ seniorHighTrack: finalTrack! as SeniorHighTrack });
     } else {
       // For other levels (Junior High, Elementary, Kinder)
       const res = await saveProgramSelection({
@@ -221,7 +240,19 @@ export default function ProgramSelection({ navigation, route }: Props) {
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={onBack}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => {
+              onBack({
+                collegeDepartment,
+                otherDepartment,
+                collegeProgram,
+                otherProgram,
+                seniorHighTrack,
+                otherTrack
+              });
+            }}
+          >
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerContent}>
@@ -254,43 +285,61 @@ export default function ProgramSelection({ navigation, route }: Props) {
             {/* Department Selection */}
             <View style={styles.field}>
               <Text style={styles.label}>College Department <Text style={styles.required}>*</Text></Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={collegeDepartment ?? ''}
-                  onValueChange={(value) => {
-                    setCollegeDepartment(value as CollegeDepartment);
-                    setCollegeProgram(null); // Reset program when department changes
-                  }}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Select a department..." value="" />
-                  {COLLEGE_DEPARTMENTS.map((dept) => (
-                    <Picker.Item key={dept} label={dept} value={dept} />
-                  ))}
-                </Picker>
-              </View>
+              <TouchableOpacity
+                style={styles.customPickerButton}
+                onPress={() => setActivePicker('dept')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.customPickerText, !collegeDepartment && styles.customPickerPlaceholder]}>
+                  {collegeDepartment || 'Select a department...'}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color="#6b7280" />
+              </TouchableOpacity>
             </View>
+
+            {/* Other Department Text Entry */}
+            {collegeDepartment === 'Others' && (
+              <View style={styles.field}>
+                <Text style={styles.label}>Please specify your department <Text style={styles.required}>*</Text></Text>
+                <TextInput
+                  style={styles.input}
+                  value={otherDepartment}
+                  onChangeText={setOtherDepartment}
+                  placeholder="Enter your department name"
+                  placeholderTextColor="#9ca3af"
+                />
+              </View>
+            )}
 
             {/* Program Selection */}
             <View style={styles.field}>
               <Text style={styles.label}>Program / Course <Text style={styles.required}>*</Text></Text>
-              <View style={[styles.pickerContainer, !collegeDepartment && styles.pickerDisabled]}>
-                <Picker
-                  selectedValue={collegeProgram ?? ''}
-                  onValueChange={(value) => setCollegeProgram(value as CollegeProgram)}
-                  enabled={!!collegeDepartment}
-                  style={styles.picker}
-                >
-                  <Picker.Item
-                    label={collegeDepartment ? 'Select a program...' : 'Select a department first'}
-                    value=""
-                  />
-                  {availablePrograms.map((prog) => (
-                    <Picker.Item key={prog} label={prog} value={prog} />
-                  ))}
-                </Picker>
-              </View>
+              <TouchableOpacity
+                style={[styles.customPickerButton, !collegeDepartment && styles.customPickerDisabled]}
+                onPress={() => collegeDepartment && setActivePicker('prog')}
+                disabled={!collegeDepartment}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.customPickerText, !collegeProgram && styles.customPickerPlaceholder]}>
+                  {collegeProgram || (collegeDepartment ? 'Select a program...' : 'Select a department first')}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color="#6b7280" />
+              </TouchableOpacity>
             </View>
+
+            {/* Other Program Text Entry */}
+            {collegeProgram === 'Others' && (
+              <View style={styles.field}>
+                <Text style={styles.label}>Please specify your program <Text style={styles.required}>*</Text></Text>
+                <TextInput
+                  style={styles.input}
+                  value={otherProgram}
+                  onChangeText={setOtherProgram}
+                  placeholder="Enter your program name"
+                  placeholderTextColor="#9ca3af"
+                />
+              </View>
+            )}
 
             {/* Program Description */}
             {collegeProgram && (
@@ -327,10 +376,150 @@ export default function ProgramSelection({ navigation, route }: Props) {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.backButtonFooter} onPress={onBack} activeOpacity={0.7}>
+          <TouchableOpacity 
+            style={styles.backButtonFooter} 
+            onPress={() => {
+              onBack({
+                collegeDepartment,
+                otherDepartment,
+                collegeProgram,
+                otherProgram,
+                seniorHighTrack,
+                otherTrack
+              });
+            }} 
+            activeOpacity={0.7}
+          >
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
         </View>
+        {/* Selection Modal */}
+        <Modal
+          visible={activePicker !== null}
+          animationType="slide"
+          transparent={true}
+          statusBarTranslucent={true}
+          onRequestClose={() => setActivePicker(null)}
+        >
+          <Pressable style={styles.modalOverlay} onPress={() => setActivePicker(null)}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {activePicker === 'dept' ? 'Select College Department' : 'Select Program / Course'}
+                </Text>
+                <TouchableOpacity onPress={() => setActivePicker(null)}>
+                  <Ionicons name="close" size={24} color="#1f2937" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView contentContainerStyle={styles.modalScroll}>
+                {activePicker === 'dept' ? (
+                  <>
+                    {COLLEGE_DEPARTMENTS.map((dept) => (
+                      <TouchableOpacity
+                        key={dept}
+                        style={[
+                          styles.modalOption,
+                          collegeDepartment === dept && styles.modalOptionSelected,
+                        ]}
+                        onPress={() => {
+                          setCollegeDepartment(dept);
+                          setCollegeProgram(null);
+                          setActivePicker(null);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.modalOptionText,
+                            collegeDepartment === dept && styles.modalOptionTextSelected,
+                          ]}
+                        >
+                          {dept}
+                        </Text>
+                        {collegeDepartment === dept && (
+                          <Ionicons name="checkmark" size={20} color="#F59E0B" />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                    <TouchableOpacity
+                      style={[
+                        styles.modalOption,
+                        collegeDepartment === 'Others' && styles.modalOptionSelected,
+                      ]}
+                      onPress={() => {
+                        setCollegeDepartment('Others');
+                        setCollegeProgram(null);
+                        setActivePicker(null);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.modalOptionText,
+                          collegeDepartment === 'Others' && styles.modalOptionTextSelected,
+                        ]}
+                      >
+                        Others (Please specify)
+                      </Text>
+                      {collegeDepartment === 'Others' && (
+                        <Ionicons name="checkmark" size={20} color="#F59E0B" />
+                      )}
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    {availablePrograms.map((prog) => (
+                      <TouchableOpacity
+                        key={prog}
+                        style={[
+                          styles.modalOption,
+                          collegeProgram === prog && styles.modalOptionSelected,
+                        ]}
+                        onPress={() => {
+                          setCollegeProgram(prog);
+                          setActivePicker(null);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.modalOptionText,
+                            collegeProgram === prog && styles.modalOptionTextSelected,
+                          ]}
+                        >
+                          {prog}
+                        </Text>
+                        {collegeProgram === prog && (
+                          <Ionicons name="checkmark" size={20} color="#F59E0B" />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                    <TouchableOpacity
+                      style={[
+                        styles.modalOption,
+                        collegeProgram === 'Others' && styles.modalOptionSelected,
+                      ]}
+                      onPress={() => {
+                        setCollegeProgram('Others');
+                        setActivePicker(null);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.modalOptionText,
+                          collegeProgram === 'Others' && styles.modalOptionTextSelected,
+                        ]}
+                      >
+                        Others (Please specify)
+                      </Text>
+                      {collegeProgram === 'Others' && (
+                        <Ionicons name="checkmark" size={20} color="#F59E0B" />
+                      )}
+                    </TouchableOpacity>
+                  </>
+                )}
+              </ScrollView>
+            </View>
+          </Pressable>
+        </Modal>
       </SafeAreaView>
     );
   }
@@ -341,7 +530,19 @@ export default function ProgramSelection({ navigation, route }: Props) {
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={onBack}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => {
+              onBack({
+                collegeDepartment,
+                otherDepartment,
+                collegeProgram,
+                otherProgram,
+                seniorHighTrack,
+                otherTrack
+              });
+            }}
+          >
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerContent}>
@@ -379,7 +580,6 @@ export default function ProgramSelection({ navigation, route }: Props) {
                     key={track}
                     onPress={() => {
                       setSeniorHighTrack(track);
-                      setTvlStrand(null); // Reset strand when track changes
                     }}
                     style={[
                       styles.trackButton,
@@ -400,32 +600,16 @@ export default function ProgramSelection({ navigation, route }: Props) {
               </View>
             </View>
 
-            {/* Strand Selection (for TVL track) */}
-            {seniorHighTrack === 'TVL' && (
-              <View style={styles.field}>
-                <Text style={styles.label}>Strand (TVL) <Text style={styles.required}>*</Text></Text>
-                <View style={styles.trackButtons}>
-                  {TVL_STRANDS.map((strand) => (
-                    <TouchableOpacity
-                      key={strand}
-                      onPress={() => setTvlStrand(strand)}
-                      style={[
-                        styles.trackButton,
-                        tvlStrand === strand && styles.trackButtonActive,
-                      ]}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.trackButtonText,
-                          tvlStrand === strand && styles.trackButtonTextActive,
-                        ]}
-                      >
-                        {strand}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+            {seniorHighTrack === 'Other' && (
+              <View style={[styles.field, { marginTop: 16 }]}>
+                <Text style={styles.label}>Please specify your track <Text style={styles.required}>*</Text></Text>
+                <TextInput
+                  style={styles.input}
+                  value={otherTrack}
+                  onChangeText={setOtherTrack}
+                  placeholder="e.g., Sports Track, Arts & Design"
+                  placeholderTextColor="#9ca3af"
+                />
               </View>
             )}
           </View>
@@ -452,7 +636,20 @@ export default function ProgramSelection({ navigation, route }: Props) {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.backButtonFooter} onPress={onBack} activeOpacity={0.7}>
+          <TouchableOpacity 
+            style={styles.backButtonFooter} 
+            onPress={() => {
+              onBack({
+                collegeDepartment,
+                otherDepartment,
+                collegeProgram,
+                otherProgram,
+                seniorHighTrack,
+                otherTrack
+              });
+            }} 
+            activeOpacity={0.7}
+          >
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
         </View>
@@ -537,7 +734,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
     borderWidth: 1,
     borderColor: '#f3f4f6',
   },
@@ -555,19 +756,92 @@ const styles = StyleSheet.create({
   required: {
     color: '#ef4444',
   },
-  pickerContainer: {
+  customPickerButton: {
+    height: 48,
     borderWidth: 1,
     borderColor: '#e5e7eb',
     borderRadius: 12,
-    backgroundColor: '#f9fafb',
-    overflow: 'hidden',
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  pickerDisabled: {
+  customPickerDisabled: {
     backgroundColor: '#f3f4f6',
     opacity: 0.6,
   },
-  picker: {
+  customPickerText: {
+    fontSize: 14,
+    color: '#1f2937',
+    fontWeight: '500',
+  },
+  customPickerPlaceholder: {
+    color: '#9ca3af',
+    fontWeight: 'normal',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
+    maxHeight: '75%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    paddingBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  modalScroll: {
+    gap: 8,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#f9fafb',
+    marginBottom: 8,
+  },
+  modalOptionSelected: {
+    backgroundColor: '#FFFBEB',
+  },
+  modalOptionText: {
+    fontSize: 14,
+    color: '#4b5563',
+    fontWeight: '500',
+  },
+  modalOptionTextSelected: {
+    color: '#92400E',
+    fontWeight: 'bold',
+  },
+  input: {
     height: 48,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+    fontSize: 14,
+    color: '#1f2937',
   },
   readOnlyInput: {
     height: 48,
@@ -642,27 +916,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitButtonDisabled: {
     backgroundColor: '#e5e7eb',
-    opacity: 0.6,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   submitButtonText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
     letterSpacing: 0.5,
   },
   backButtonFooter: {
     borderWidth: 2,
-    borderColor: '#F59E0B',
+    borderColor: '#e5e7eb',
     borderRadius: 12,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backButtonText: {
-    color: '#F59E0B',
+    color: '#6b7280',
     fontSize: 14,
     fontWeight: '600',
   },

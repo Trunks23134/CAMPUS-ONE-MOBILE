@@ -3,7 +3,6 @@ import type {
   CollegeDepartment,
   CollegeProgram,
   SeniorHighTrack,
-  TVLStrand,
 } from '../types/admissions.types';
 
 // ─── College Program Mapping ────────────────────────────────────────────────
@@ -36,9 +35,16 @@ export const COLLEGE_PROGRAMS: Record<CollegeDepartment, CollegeProgram[]> = {
 };
 
 // ─── Senior High School Track Mapping ──────────────────────────────────────
-export const SENIOR_HIGH_TRACKS: SeniorHighTrack[] = ['STEM', 'ABM', 'HUMSS', 'GAS', 'TVL'];
-
-export const TVL_STRANDS: TVLStrand[] = ['ICT', 'Home Economics', 'Industrial Arts'];
+export const SENIOR_HIGH_TRACKS: SeniorHighTrack[] = [
+  'STEM',
+  'ABM',
+  'HUMSS',
+  'GAS',
+  'ICT',
+  'TVL',
+  'HE',
+  'Other',
+];
 
 // ─── Helper Functions ───────────────────────────────────────────────────────
 export function getProgramsForDepartment(department: CollegeDepartment): CollegeProgram[] {

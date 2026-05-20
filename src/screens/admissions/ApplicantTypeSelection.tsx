@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import type { ApplicantType, SchoolLevel } from '../../types/admissions.types';
 
 const AVAILABLE: Record<SchoolLevel, ApplicantType[]> = {
-  Kinder: ['Freshman'],
-  Elementary: ['Freshman', 'Transferee'],
+  Kinder: ['Freshman', 'Transferee', 'Returnee'],
+  Elementary: ['Freshman', 'Transferee', 'Returnee'],
   'Junior High School': ['Freshman', 'Transferee', 'Returnee'],
   'Senior High School': ['Freshman', 'Transferee', 'Returnee'],
   College: ['Freshman', 'Transferee', 'Shiftee', 'Returnee'],
@@ -56,8 +56,8 @@ export default function ApplicantTypeSelection({ schoolLevel, selected, onSelect
               !isAvail
                 ? styles.optionDisabled
                 : isSel
-                ? styles.optionSelected
-                : styles.optionDefault,
+                  ? styles.optionSelected
+                  : styles.optionDefault,
             ]}
             activeOpacity={isAvail ? 0.7 : 1}
           >
@@ -68,8 +68,8 @@ export default function ApplicantTypeSelection({ schoolLevel, selected, onSelect
                   !isAvail
                     ? styles.optionTitleDisabled
                     : isSel
-                    ? styles.optionTitleSelected
-                    : styles.optionTitleDefault,
+                      ? styles.optionTitleSelected
+                      : styles.optionTitleDefault,
                 ]}
               >
                 {type}

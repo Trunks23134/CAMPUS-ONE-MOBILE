@@ -82,8 +82,7 @@ export default function AlumniRegisterScreen({ onBack, onSuccess }: Props) {
 
     setLoading(true);
     try {
-      const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3000';
-      const res = await fetch(`${API_URL}/api/alumni/register`, {
+      const res = await fetch('/api/v1/alumni/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

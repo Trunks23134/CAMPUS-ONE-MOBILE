@@ -8,12 +8,13 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { SchoolLevel, ApplicantType } from '../../types/admissions.types';
 import { saveParentInformation } from '../../services/admissions.service';
-import { shadows } from '../../theme/shadows';
 
 interface Props {
   navigation: any;
@@ -22,8 +23,9 @@ interface Props {
       schoolLevel: SchoolLevel;
       applicantType: ApplicantType;
       applicantId: string;
-      onSuccess: () => void;
+      onSuccess: (data: any) => void;
       onBack: () => void;
+      initialData?: any;
     };
   };
 }
@@ -42,69 +44,138 @@ interface FormState {
 }
 
 export default function ParentInformation({ navigation, route }: Props) {
-  const { schoolLevel, applicantType, applicantId, onSuccess, onBack } = route.params;
+  const { schoolLevel, applicantType, applicantId, onSuccess, onBack, initialData } = route.params;
 
   const [form, setForm] = useState<FormState>({
-    fatherName: '',
-    fatherAddress: '',
-    fatherContact: '',
-    guardianName: '',
-    guardianAddress: '',
-    guardianPhoneHome: '',
-    guardianPhoneWork: '',
-    motherName: '',
-    motherAddress: '',
-    motherContact: '',
+    fatherName: initialData?.fatherName || '',
+    fatherAddress: initialData?.fatherAddress || '',
+    fatherContact: initialData?.fatherContact || '',
+    guardianName: initialData?.guardianName || '',
+    guardianAddress: initialData?.guardianAddress || '',
+    guardianPhoneHome: initialData?.guardianPhoneHome || '',
+    guardianPhoneWork: initialData?.guardianPhoneWork || '',
+    motherName: initialData?.motherName || '',
+    motherAddress: initialData?.motherAddress || '',
+    motherContact: initialData?.motherContact || '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   const setField = (field: keyof FormState) => (value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    let finalValue = value;
+    if (['fatherContact', 'motherContact', 'guardianPhoneHome', 'guardianPhoneWork'].includes(field)) {
+      // Numbers only
+      finalValue = value.replace(/[^0-9]/g, '');
+    }
+    setForm((prev) => ({ ...prev, [field]: finalValue }));
     setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
   const validate = (): boolean => {
+    console.log('[ParentInformation] Starting validation...');
     const errs: Record<string, string> = {};
 
-    if (!form.fatherName.trim()) errs.fatherName = "Father's name is required";
-    if (!form.fatherAddress.trim()) errs.fatherAddress = "Father's address is required";
-    if (!form.fatherContact.trim()) errs.fatherContact = "Father's contact is required";
+    // Father Information
+    if (!form.fatherName.trim()) {
+      errs.fatherName = "Father's name is required";
+    }
+    if (!form.fatherAddress.trim()) {
+      errs.fatherAddress = "Father's address is required";
+    }
+    if (!form.fatherContact.trim()) {
+      errs.fatherContact = "Father's contact number is required";
+    } else if (!/^\d{11}$/.test(form.fatherContact)) {
+      errs.fatherContact = "Must be exactly 11 digits (e.g., 09123456789)";
+    }
 
-    if (!form.motherName.trim()) errs.motherName = "Mother's name is required";
-    if (!form.motherAddress.trim()) errs.motherAddress = "Mother's address is required";
-    if (!form.motherContact.trim()) errs.motherContact = "Mother's contact is required";
+    // Mother Information
+    if (!form.motherName.trim()) {
+      errs.motherName = "Mother's name is required";
+    }
+    if (!form.motherAddress.trim()) {
+      errs.motherAddress = "Mother's address is required";
+    }
+    if (!form.motherContact.trim()) {
+      errs.motherContact = "Mother's contact number is required";
+    } else if (!/^\d{11}$/.test(form.motherContact)) {
+      errs.motherContact = "Must be exactly 11 digits (e.g., 09123456789)";
+    }
 
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
+    // Guardian Information is optional
+    if (form.guardianName.trim() || form.guardianAddress.trim()) {
+      if (!form.guardianName.trim()) errs.guardianName = "Guardian's name is required";
+      if (!form.guardianAddress.trim()) errs.guardianAddress = "Guardian's address is required";
+    }
+
+    if (Object.keys(errs).length > 0) {
+      Alert.alert('Incomplete Information', 'Please fill in all mandatory fields (*) with valid information.');
+      setErrors(errs);
+      return false;
+    }
+
+    setErrors({});
+    return true;
   };
 
   const handleSave = async () => {
-    if (!validate()) return;
+    console.log('[ParentInformation] Continue button pressed.');
+    if (!validate()) {
+      console.log('[ParentInformation] handleSave aborted due to validation errors.');
+      return;
+    }
 
     setLoading(true);
+    console.log('[ParentInformation] Saving to database...', { applicantId });
+    try {
+      // Add a 10-second timeout to prevent the app from hanging on slow networks
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timed out. Please check your internet connection.')), 10000)
+      );
 
-    const res = await saveParentInformation({
-      applicant_id: applicantId,
-      father_name: form.fatherName,
-      father_address: form.fatherAddress,
-      father_contact: form.fatherContact,
-      guardian_name: form.guardianName,
-      guardian_address: form.guardianAddress,
-      guardian_phone_home: form.guardianPhoneHome,
-      guardian_phone_work: form.guardianPhoneWork,
-      mother_name: form.motherName,
-      mother_address: form.motherAddress,
-      mother_contact: form.motherContact,
-    });
+      const res = await Promise.race([
+        saveParentInformation({
+          applicant_id: applicantId,
+          father_name: form.fatherName,
+          father_address: form.fatherAddress,
+          father_contact: form.fatherContact,
+          guardian_name: form.guardianName,
+          guardian_address: form.guardianAddress,
+          guardian_phone_home: form.guardianPhoneHome,
+          guardian_phone_work: form.guardianPhoneWork,
+          mother_name: form.motherName,
+          mother_address: form.motherAddress,
+          mother_contact: form.motherContact,
+        }),
+        timeoutPromise
+      ]) as any;
 
-    setLoading(false);
+      console.log('[ParentInformation] Save response:', res);
 
-    if (res.error) {
-      Alert.alert('Error', res.error.message);
-    } else {
-      onSuccess();
+      if (res.error) {
+        console.error('[ParentInformation] Save error:', res.error);
+        Alert.alert('Error', res.error.message);
+      } else {
+        console.log('[ParentInformation] Save successful. Triggering onSuccess...');
+        onSuccess({
+          father_name: form.fatherName,
+          father_address: form.fatherAddress,
+          father_contact: form.fatherContact,
+          guardian_name: form.guardianName,
+          guardian_address: form.guardianAddress,
+          guardian_phone_home: form.guardianPhoneHome,
+          guardian_phone_work: form.guardianPhoneWork,
+          mother_name: form.motherName,
+          mother_address: form.motherAddress,
+          mother_contact: form.motherContact,
+        });
+      }
+    } catch (error) {
+      console.error('[ParentInformation] Unexpected error in handleSave:', error);
+      Alert.alert('Error', 'Failed to save parent information: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setLoading(false);
+      console.log('[ParentInformation] handleSave process finished.');
     }
   };
 
@@ -129,7 +200,11 @@ export default function ParentInformation({ navigation, route }: Props) {
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Selection Tags */}
         <View style={styles.tags}>
           <View style={styles.tag}>
@@ -148,18 +223,19 @@ export default function ParentInformation({ navigation, route }: Props) {
 
           <View style={styles.field}>
             <Text style={styles.label}>Father's Name <Text style={styles.required}>*</Text></Text>
+            <Text style={styles.formatGuide}>Format: First Name Middle Name, Last Name</Text>
             <TextInput
               style={[styles.input, errors.fatherName && styles.inputError]}
               value={form.fatherName}
               onChangeText={setField('fatherName')}
-              placeholder="Enter father's full name"
+              placeholder="Juan Santos, Dela Cruz"
               placeholderTextColor="#9ca3af"
             />
             {errors.fatherName ? <Text style={styles.errorText}>{errors.fatherName}</Text> : null}
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Address</Text>
+            <Text style={styles.label}>Address <Text style={styles.required}>*</Text></Text>
             <TextInput
               style={[styles.textArea, errors.fatherAddress && styles.inputError]}
               value={form.fatherAddress}
@@ -173,16 +249,65 @@ export default function ParentInformation({ navigation, route }: Props) {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Contact No.</Text>
+            <Text style={styles.label}>Contact No. <Text style={styles.required}>*</Text></Text>
             <TextInput
               style={[styles.input, errors.fatherContact && styles.inputError]}
               value={form.fatherContact}
               onChangeText={setField('fatherContact')}
-              placeholder="09XX XXX XXXX"
+              placeholder="09123456789"
               placeholderTextColor="#9ca3af"
-              keyboardType="phone-pad"
+              keyboardType="numeric"
+              maxLength={11}
             />
             {errors.fatherContact ? <Text style={styles.errorText}>{errors.fatherContact}</Text> : null}
+          </View>
+        </View>
+
+        {/* Mother Information */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Mother Information</Text>
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>Mother's Name <Text style={styles.required}>*</Text></Text>
+            <Text style={styles.formatGuide}>Format: First Name Middle Name, Last Name</Text>
+            <TextInput
+              style={[styles.input, errors.motherName && styles.inputError]}
+              value={form.motherName}
+              onChangeText={setField('motherName')}
+              placeholder="Maria Santos, Dela Cruz"
+              placeholderTextColor="#9ca3af"
+            />
+            {errors.motherName ? <Text style={styles.errorText}>{errors.motherName}</Text> : null}
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>Address <Text style={styles.required}>*</Text></Text>
+            <TextInput
+              style={[styles.textArea, errors.motherAddress && styles.inputError]}
+              value={form.motherAddress}
+              onChangeText={setField('motherAddress')}
+              placeholder="House No., Street, Barangay, City, Province"
+              placeholderTextColor="#9ca3af"
+              multiline
+              numberOfLines={3}
+            />
+            {errors.motherAddress ? <Text style={styles.errorText}>{errors.motherAddress}</Text> : null}
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>Contact No. <Text style={styles.required}>*</Text></Text>
+            <TextInput
+              style={[styles.input, errors.motherContact && styles.inputError]}
+              value={form.motherContact}
+              onChangeText={setField('motherContact')}
+              placeholder="09123456789"
+              placeholderTextColor="#9ca3af"
+              keyboardType="numeric"
+              maxLength={11}
+            />
+            {errors.motherContact ? <Text style={styles.errorText}>{errors.motherContact}</Text> : null}
           </View>
         </View>
 
@@ -249,52 +374,6 @@ export default function ParentInformation({ navigation, route }: Props) {
             />
           </View>
         </View>
-
-        {/* Mother Information */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Mother Information</Text>
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.label}>Mother's Name <Text style={styles.required}>*</Text></Text>
-            <TextInput
-              style={[styles.input, errors.motherName && styles.inputError]}
-              value={form.motherName}
-              onChangeText={setField('motherName')}
-              placeholder="Enter mother's full name"
-              placeholderTextColor="#9ca3af"
-            />
-            {errors.motherName ? <Text style={styles.errorText}>{errors.motherName}</Text> : null}
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.label}>Address</Text>
-            <TextInput
-              style={[styles.textArea, errors.motherAddress && styles.inputError]}
-              value={form.motherAddress}
-              onChangeText={setField('motherAddress')}
-              placeholder="House No., Street, Barangay, City, Province"
-              placeholderTextColor="#9ca3af"
-              multiline
-              numberOfLines={3}
-            />
-            {errors.motherAddress ? <Text style={styles.errorText}>{errors.motherAddress}</Text> : null}
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.label}>Contact No.</Text>
-            <TextInput
-              style={[styles.input, errors.motherContact && styles.inputError]}
-              value={form.motherContact}
-              onChangeText={setField('motherContact')}
-              placeholder="09XX XXX XXXX"
-              placeholderTextColor="#9ca3af"
-              keyboardType="phone-pad"
-            />
-            {errors.motherContact ? <Text style={styles.errorText}>{errors.motherContact}</Text> : null}
-          </View>
-        </View>
       </ScrollView>
 
       {/* Footer */}
@@ -319,6 +398,7 @@ export default function ParentInformation({ navigation, route }: Props) {
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -398,7 +478,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
     borderWidth: 1,
     borderColor: '#f3f4f6',
   },
@@ -426,6 +510,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4b5563',
     marginBottom: 6,
+  },
+  formatGuide: {
+    fontSize: 11,
+    color: '#9ca3af',
+    marginBottom: 6,
+    fontStyle: 'italic',
   },
   optional: {
     fontWeight: '400',
@@ -486,7 +576,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    ...shadows.primaryBtnSm,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitButtonDisabled: {
     opacity: 0.6,
@@ -499,14 +593,14 @@ const styles = StyleSheet.create({
   },
   backButtonFooter: {
     borderWidth: 2,
-    borderColor: '#F59E0B',
+    borderColor: '#e5e7eb',
     borderRadius: 12,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backButtonText: {
-    color: '#F59E0B',
+    color: '#6b7280',
     fontSize: 14,
     fontWeight: '600',
   },

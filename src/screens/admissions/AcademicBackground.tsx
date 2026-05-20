@@ -8,13 +8,15 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import type { SchoolLevel, ApplicantType } from '../../types/admissions.types';
 import { saveAcademicBackground } from '../../services/admissions.service';
-import { shadows } from '../../theme/shadows';
 
 interface Props {
   navigation: any;
@@ -23,8 +25,9 @@ interface Props {
       schoolLevel: SchoolLevel;
       applicantType: ApplicantType;
       applicantId: string;
-      onSuccess: () => void;
-      onBack: () => void;
+      onSuccess: (data: any) => void;
+      onBack: (partialData?: any) => void;
+      initialData?: any;
     };
   };
 }
@@ -36,18 +39,23 @@ interface GradeEntry {
   completionYear: string;
 }
 
-function getGradeLevels(schoolLevel: SchoolLevel): string[] {
+function getGradeLevels(schoolLevel: SchoolLevel, applicantType: ApplicantType): string[] {
   switch (schoolLevel) {
-    case 'College':
-      return ['Grade 12', 'Grade 11', 'Grade 10', 'Grade 9', 'Grade 8', 'Grade 7', 'Grade 6'];
+    case 'College': {
+      const base = ['Primary School', 'Elementary', 'Junior High School', 'Senior High School'];
+      if (applicantType === 'Transferee') {
+        base.push('Previous College');
+      }
+      return base;
+    }
     case 'Senior High School':
-      return ['Grade 10', 'Grade 9', 'Grade 8', 'Grade 7', 'Grade 6'];
+      return ['Primary School', 'Elementary', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'];
     case 'Junior High School':
-      return ['Grade 6', 'Grade 5', 'Grade 4', 'Grade 3', 'Grade 2', 'Grade 1'];
+      return ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'];
     case 'Elementary':
-      return ['Kindergarten', 'Nursery'];
+      return ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'];
     case 'Kinder':
-      return ['Nursery', 'Preschool'];
+      return ['Preschool/Kindergarten'];
     default:
       return [];
   }
@@ -63,25 +71,81 @@ function generateYearOptions(): string[] {
 }
 
 export default function AcademicBackground({ navigation, route }: Props) {
-  const { schoolLevel, applicantType, applicantId, onSuccess, onBack } = route.params;
-  const gradeLevels = getGradeLevels(schoolLevel);
+  const { schoolLevel, applicantType, applicantId, onSuccess, onBack, initialData } = route.params;
+  const gradeLevels = getGradeLevels(schoolLevel, applicantType);
   const yearOptions = generateYearOptions();
 
-  const [grades, setGrades] = useState<GradeEntry[]>(
-    gradeLevels.map((level, index) => ({
+  const [grades, setGrades] = useState<GradeEntry[]>(() => {
+    const requiredLevels = getGradeLevels(schoolLevel, applicantType);
+    
+    // Create initial rows for all required levels
+    const initialRows = requiredLevels.map((level, index) => ({
       id: `initial-${index}`,
       level,
       schoolName: '',
       completionYear: '',
-    }))
-  );
+    }));
+
+    // If we have persisted data, prioritize it completely
+    if (initialData?.academicBackground && initialData.academicBackground.length > 0) {
+      // Create a map of persisted data by level for easy lookup
+      const persistedMap = new Map<string, any>(
+        initialData.academicBackground.map((entry: any) => [entry.grade_level, entry])
+      );
+
+      return requiredLevels.map((level, index) => {
+        const persisted = persistedMap.get(level);
+        return {
+          id: persisted?.id || `initial-${index}`,
+          level,
+          schoolName: persisted?.school_name || '',
+          completionYear: persisted?.completion_year || '',
+        };
+      });
+    }
+    
+    return initialRows;
+  });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [activeGradeId, setActiveGradeId] = useState<string | null>(null);
 
+  // Sync grades when schoolLevel/applicantType changes
+  React.useEffect(() => {
+    const requiredLevels = getGradeLevels(schoolLevel, applicantType);
+    const initialRows = requiredLevels.map((level, index) => ({
+      id: `initial-${index}`,
+      level,
+      schoolName: '',
+      completionYear: '',
+    }));
+
+    setGrades(prev => {
+      return initialRows.map(row => {
+        const matchingEntry = prev.find(p => p.level === row.level);
+        if (matchingEntry) {
+          return {
+            ...row,
+            schoolName: matchingEntry.schoolName,
+            completionYear: matchingEntry.completionYear,
+          };
+        }
+        return row;
+      });
+    });
+  }, [schoolLevel, applicantType]);
+  
   const updateGrade = (id: string, field: keyof GradeEntry, value: string) => {
+    let finalValue = value;
+    if (field === 'completionYear') {
+      // Numbers only, max 4 chars
+      finalValue = value.replace(/[^0-9]/g, '').slice(0, 4);
+    }
+
     setGrades((prev) =>
-      prev.map((grade) => (grade.id === id ? { ...grade, [field]: value } : grade))
+      prev.map((grade) => (grade.id === id ? { ...grade, [field]: finalValue } : grade))
     );
     setErrors((prev) => {
       const newErrors = { ...prev };
@@ -90,12 +154,11 @@ export default function AcademicBackground({ navigation, route }: Props) {
     });
   };
 
-  const addNewRow = () => {
-    const newId = `custom-${Date.now()}`;
+  const addGrade = () => {
     setGrades((prev) => [
       ...prev,
       {
-        id: newId,
+        id: Math.random().toString(36).substring(7),
         level: '',
         schoolName: '',
         completionYear: '',
@@ -103,21 +166,16 @@ export default function AcademicBackground({ navigation, route }: Props) {
     ]);
   };
 
-  const deleteRow = (id: string) => {
-    setGrades((prev) => prev.filter((grade) => grade.id !== id));
-    setErrors((prev) => {
-      const newErrors = { ...prev };
-      Object.keys(newErrors).forEach((key) => {
-        if (key.startsWith(`${id}-`)) {
-          delete newErrors[key];
-        }
-      });
-      return newErrors;
-    });
+  const removeGrade = (id: string) => {
+    // Prevent removing initial rows if you want them mandatory, 
+    // or just allow removing any row. Let's allow removing any except if it's the last one.
+    if (grades.length <= 1) return;
+    setGrades((prev) => prev.filter((g) => g.id !== id));
   };
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
+    const currentYear = new Date().getFullYear();
 
     grades.forEach((grade) => {
       if (!grade.level.trim()) {
@@ -126,10 +184,23 @@ export default function AcademicBackground({ navigation, route }: Props) {
       if (!grade.schoolName.trim()) {
         errs[`${grade.id}-schoolName`] = 'Required';
       }
-      if (!grade.completionYear.trim()) {
+      
+      const yr = grade.completionYear.trim();
+      if (!yr) {
         errs[`${grade.id}-completionYear`] = 'Required';
+      } else if (yr.length !== 4 || !/^\d{4}$/.test(yr)) {
+        errs[`${grade.id}-completionYear`] = 'Must be a 4-digit year (e.g., 2020)';
+      } else {
+        const parsedYear = parseInt(yr, 10);
+        if (parsedYear < 1950 || parsedYear > currentYear + 1) {
+          errs[`${grade.id}-completionYear`] = 'Invalid year';
+        }
       }
     });
+
+    if (Object.keys(errs).length > 0) {
+      Alert.alert('Invalid Information', 'Please provide a valid school name and a realistic completion year for all education levels.');
+    }
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -156,7 +227,8 @@ export default function AcademicBackground({ navigation, route }: Props) {
     if (res.error) {
       Alert.alert('Error', res.error.message);
     } else {
-      onSuccess();
+      // Proceed immediately without the intermediate success alert
+      onSuccess({ entries });
     }
   };
 
@@ -164,7 +236,17 @@ export default function AcademicBackground({ navigation, route }: Props) {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => {
+            const entries = grades.map((grade) => ({
+              grade_level: grade.level,
+              school_name: grade.schoolName,
+              completion_year: grade.completionYear,
+            }));
+            onBack({ entries });
+          }}
+        >
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
@@ -181,7 +263,11 @@ export default function AcademicBackground({ navigation, route }: Props) {
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Selection Tags */}
         <View style={styles.tags}>
           <View style={styles.tag}>
@@ -200,38 +286,12 @@ export default function AcademicBackground({ navigation, route }: Props) {
 
           {/* Grade Entries */}
           {grades.map((grade, index) => {
-            const isCustomRow = grade.id.startsWith('custom-');
-
             return (
               <View key={grade.id} style={styles.gradeEntry}>
                 <View style={styles.gradeHeader}>
-                  <Text style={styles.gradeNumber}>Entry {index + 1}</Text>
-                  {isCustomRow && (
-                    <TouchableOpacity onPress={() => deleteRow(grade.id)} style={styles.deleteButton}>
-                      <Ionicons name="trash-outline" size={18} color="#ef4444" />
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {/* Grade Level */}
-                <View style={styles.field}>
-                  <Text style={styles.label}>Grade Level <Text style={styles.required}>*</Text></Text>
-                  {isCustomRow ? (
-                    <TextInput
-                      style={[styles.input, errors[`${grade.id}-level`] && styles.inputError]}
-                      value={grade.level}
-                      onChangeText={(value) => updateGrade(grade.id, 'level', value)}
-                      placeholder="e.g., Grade 10"
-                      placeholderTextColor="#9ca3af"
-                    />
-                  ) : (
-                    <View style={styles.readOnlyInput}>
-                      <Text style={styles.readOnlyText}>{grade.level}</Text>
-                    </View>
-                  )}
-                  {errors[`${grade.id}-level`] ? (
-                    <Text style={styles.errorText}>{errors[`${grade.id}-level`]}</Text>
-                  ) : null}
+                  <View style={[styles.readOnlyInput, { flex: 1 }]}>
+                    <Text style={styles.readOnlyText}>{grade.level}</Text>
+                  </View>
                 </View>
 
                 {/* School Name */}
@@ -252,17 +312,26 @@ export default function AcademicBackground({ navigation, route }: Props) {
                 {/* Completion Year */}
                 <View style={styles.field}>
                   <Text style={styles.label}>Completion Year <Text style={styles.required}>*</Text></Text>
-                  <View style={[styles.pickerContainer, errors[`${grade.id}-completionYear`] && styles.inputError]}>
-                    <Picker
-                      selectedValue={grade.completionYear}
-                      onValueChange={(value) => updateGrade(grade.id, 'completionYear', value)}
-                      style={styles.picker}
+                  <View style={[styles.inputContainer, errors[`${grade.id}-completionYear`] && styles.inputError]}>
+                    <TextInput
+                      style={styles.flexInput}
+                      value={grade.completionYear}
+                      onChangeText={(value) => updateGrade(grade.id, 'completionYear', value)}
+                      placeholder="YYYY (e.g., 2020)"
+                      placeholderTextColor="#9ca3af"
+                      keyboardType="numeric"
+                      maxLength={4}
+                    />
+                    <TouchableOpacity
+                      style={styles.calendarIcon}
+                      onPress={() => {
+                        setActiveGradeId(grade.id);
+                        setShowDatePicker(true);
+                      }}
+                      activeOpacity={0.7}
                     >
-                      <Picker.Item label="Select year" value="" />
-                      {yearOptions.map((year) => (
-                        <Picker.Item key={year} label={year} value={year} />
-                      ))}
-                    </Picker>
+                      <Ionicons name="calendar" size={20} color="#F59E0B" />
+                    </TouchableOpacity>
                   </View>
                   {errors[`${grade.id}-completionYear`] ? (
                     <Text style={styles.errorText}>{errors[`${grade.id}-completionYear`]}</Text>
@@ -271,14 +340,52 @@ export default function AcademicBackground({ navigation, route }: Props) {
               </View>
             );
           })}
-
-          {/* Add Button */}
-          <TouchableOpacity style={styles.addButton} onPress={addNewRow} activeOpacity={0.7}>
-            <Ionicons name="add-circle-outline" size={20} color="#F59E0B" />
-            <Text style={styles.addButtonText}>Add Another Grade Level</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {showDatePicker && (
+        Platform.OS === 'ios' ? (
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => {
+                  setShowDatePicker(false);
+                  setActiveGradeId(null);
+                }}>
+                  <Text style={styles.doneButtonText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={new Date()}
+                mode="date"
+                display="spinner"
+                onChange={(event, selectedDate) => {
+                  if (selectedDate && activeGradeId) {
+                    const yr = selectedDate.getFullYear().toString();
+                    updateGrade(activeGradeId, 'completionYear', yr);
+                  }
+                }}
+                maximumDate={new Date()}
+              />
+            </View>
+          </View>
+        ) : (
+          <DateTimePicker
+            value={new Date()}
+            mode="date"
+            display="default"
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(false);
+              if (selectedDate && activeGradeId) {
+                const yr = selectedDate.getFullYear().toString();
+                updateGrade(activeGradeId, 'completionYear', yr);
+              }
+              setActiveGradeId(null);
+            }}
+            maximumDate={new Date()}
+          />
+        )
+      )}
 
       {/* Footer */}
       <View style={styles.footer}>
@@ -298,10 +405,22 @@ export default function AcademicBackground({ navigation, route }: Props) {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.backButtonFooter} onPress={onBack} activeOpacity={0.7}>
+        <TouchableOpacity 
+          style={styles.backButtonFooter} 
+          onPress={() => {
+            const entries = grades.map((grade) => ({
+              grade_level: grade.level,
+              school_name: grade.schoolName,
+              completion_year: grade.completionYear,
+            }));
+            onBack({ entries });
+          }} 
+          activeOpacity={0.7}
+        >
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -380,7 +499,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
     borderWidth: 1,
     borderColor: '#f3f4f6',
   },
@@ -407,13 +530,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  gradeNumber: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6b7280',
-  },
-  deleteButton: {
-    padding: 4,
+  gradeTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#F59E0B',
+    backgroundColor: '#fffbeb',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#fef3c7',
   },
   field: {
     marginBottom: 12,
@@ -469,22 +595,78 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     marginTop: 4,
   },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    backgroundColor: '#f9fafb',
+    paddingHorizontal: 4,
+  },
+  flexInput: {
+    flex: 1,
+    height: 48,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: '#1f2937',
+  },
+  calendarIcon: {
+    padding: 10,
+  },
+  modalContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    height: '100%',
+    justifyContent: 'flex-end',
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  doneButtonText: {
+    color: '#F59E0B',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderWidth: 2,
+    padding: 12,
+    borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#d1d5db',
+    borderColor: '#F59E0B',
     borderRadius: 12,
     marginTop: 8,
+    backgroundColor: '#fffbeb',
   },
   addButtonText: {
+    color: '#F59E0B',
     fontSize: 14,
     fontWeight: '600',
-    color: '#F59E0B',
+    marginLeft: 8,
+  },
+  removeBtn: {
+    padding: 8,
+    backgroundColor: '#fef2f2',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#fee2e2',
   },
   footer: {
     position: 'absolute',
@@ -500,13 +682,18 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   submitButton: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#F59E0B',
     borderRadius: 12,
     height: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitButtonDisabled: {
     opacity: 0.6,
@@ -514,12 +701,12 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
     letterSpacing: 0.5,
   },
   backButtonFooter: {
     borderWidth: 2,
-    borderColor: '#d1d5db',
+    borderColor: '#e5e7eb',
     borderRadius: 12,
     height: 44,
     alignItems: 'center',

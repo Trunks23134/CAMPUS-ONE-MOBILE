@@ -41,56 +41,6 @@ export type AuthStackParamList = {
   ApplicantTypeSelection: any;
 };
 
-// Wrapper components defined outside render to avoid recreation on every render
-function AlumniRegisterWrapper(props: any) {
-  return (
-    <AlumniRegisterScreen
-      onBack={() => props.navigation.goBack()}
-      onSuccess={() => props.navigation.navigate('Login')}
-    />
-  );
-}
-
-function CreateAccountScreen(props: any) {
-  return <CreateAccount {...props} />;
-}
-
-function PersonalProfileScreen(props: any) {
-  return <PersonalProfile {...props} />;
-}
-
-function ParentInformationScreen(props: any) {
-  return <ParentInformation {...props} />;
-}
-
-function AcademicBackgroundScreen(props: any) {
-  return <AcademicBackground {...props} />;
-}
-
-function AlumniRelativeInformationScreen(props: any) {
-  return <AlumniRelativeInformation {...props} />;
-}
-
-function ProgramSelectionScreen(props: any) {
-  return <ProgramSelection {...props} />;
-}
-
-function DocumentUploadScreen(props: any) {
-  return <DocumentUpload {...props} />;
-}
-
-function ApplicationConfirmationScreen(props: any) {
-  return <ApplicationConfirmation {...props} />;
-}
-
-function SchoolLevelSelectionScreen(props: any) {
-  return <SchoolLevelSelection {...props} />;
-}
-
-function ApplicantTypeSelectionScreen(props: any) {
-  return <ApplicantTypeSelection {...props} />;
-}
-
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
 export default function AuthStack() {
@@ -98,21 +48,26 @@ export default function AuthStack() {
     <Stack.Navigator initialRouteName="Welcome" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="AlumniRegister" component={AlumniRegisterWrapper} />
+      <Stack.Screen name="AlumniRegister" component={(props: any) => (
+        <AlumniRegisterScreen
+          onBack={() => props.navigation.goBack()}
+          onSuccess={() => props.navigation.navigate('Login')}
+        />
+      )} />
       <Stack.Screen name="AdmissionsFlow" component={AdmissionsFlow} />
       <Stack.Screen name="AdmissionsHome" component={AdmissionsHome} />
       <Stack.Screen name="AdmissionsWebView" component={AdmissionsWebView} />
-      <Stack.Screen name="CreateAccount" component={CreateAccountScreen} />
-      <Stack.Screen name="PersonalProfile" component={PersonalProfileScreen} />
-      <Stack.Screen name="ParentInformation" component={ParentInformationScreen} />
-      <Stack.Screen name="AcademicBackground" component={AcademicBackgroundScreen} />
-      <Stack.Screen name="AlumniRelativeInformation" component={AlumniRelativeInformationScreen} />
-      <Stack.Screen name="ProgramSelection" component={ProgramSelectionScreen} />
-      <Stack.Screen name="DocumentUpload" component={DocumentUploadScreen} />
-      <Stack.Screen name="ApplicationConfirmation" component={ApplicationConfirmationScreen} />
+      <Stack.Screen name="CreateAccount" component={(props: any) => <CreateAccount {...props} />} />
+      <Stack.Screen name="PersonalProfile" component={(props: any) => <PersonalProfile {...props} />} />
+      <Stack.Screen name="ParentInformation" component={(props: any) => <ParentInformation {...props} />} />
+      <Stack.Screen name="AcademicBackground" component={(props: any) => <AcademicBackground {...props} />} />
+      <Stack.Screen name="AlumniRelativeInformation" component={(props: any) => <AlumniRelativeInformation {...props} />} />
+      <Stack.Screen name="ProgramSelection" component={(props: any) => <ProgramSelection {...props} />} />
+      <Stack.Screen name="DocumentUpload" component={(props: any) => <DocumentUpload {...props} />} />
+      <Stack.Screen name="ApplicationConfirmation" component={(props: any) => <ApplicationConfirmation {...props} />} />
       <Stack.Screen name="ApplicationTracking" component={ApplicationTracking} />
-      <Stack.Screen name="SchoolLevelSelection" component={SchoolLevelSelectionScreen} />
-      <Stack.Screen name="ApplicantTypeSelection" component={ApplicantTypeSelectionScreen} />
+      <Stack.Screen name="SchoolLevelSelection" component={(props: any) => <SchoolLevelSelection {...props} />} />
+      <Stack.Screen name="ApplicantTypeSelection" component={(props: any) => <ApplicantTypeSelection {...props} />} />
     </Stack.Navigator>
   );
 }

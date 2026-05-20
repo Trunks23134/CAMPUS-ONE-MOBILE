@@ -46,12 +46,10 @@ export type SeniorHighTrack =
   | "ABM"
   | "HUMSS"
   | "GAS"
-  | "TVL";
-
-export type TVLStrand =
   | "ICT"
-  | "Home Economics"
-  | "Industrial Arts";
+  | "TVL"
+  | "HE"
+  | "Other";
 
 // ─── DTOs ────────────────────────────────────────────────────────────────────
 export interface CreateAccountDTO {
@@ -178,10 +176,35 @@ export interface AppSession {
   applicantId: string | null;
   firstName: string;
   lastName: string;
+  middleName: string;
   email: string;
+  birthdate: string;
+  mobileNumber: string;
+  street: string;
+  barangay: string;
+  city: string;
+  province: string;
+  zipCode: string;
+  fatherName: string;
+  fatherAddress: string;
+  fatherContact: string;
+  motherName: string;
+  motherAddress: string;
+  motherContact: string;
+  guardianName: string;
+  guardianAddress: string;
+  guardianPhoneHome: string;
+  guardianPhoneWork: string;
+  academicBackground: Array<{
+    grade_level: string;
+    school_name: string;
+    completion_year: string;
+  }>;
+  relatives: any[];
+  docStates: Record<string, any>;
   collegeDepartment: CollegeDepartment | null;
   collegeProgram: CollegeProgram | null;
   seniorHighTrack: SeniorHighTrack | null;
-  tvlStrand: TVLStrand | null;
+  tvlStrand: string | null;
   referenceNumber: string | null;
 }

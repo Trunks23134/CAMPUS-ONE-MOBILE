@@ -18,9 +18,11 @@ import type {
   RequirementItem,
   DocumentStatus,
 } from '../../types/admissions.types';
-import { uploadApplicantDocument } from '../../services/admissions.service';
+import { 
+  uploadApplicantDocument, 
+  getApplicantDocuments 
+} from '../../services/admissions.service';
 import { getRequirements } from '../../services/requirements.config';
-import { shadows } from '../../theme/shadows';
 
 interface Props {
   navigation: any;
@@ -29,8 +31,9 @@ interface Props {
       schoolLevel: SchoolLevel;
       applicantType: ApplicantType;
       applicantId: string;
-      onSuccess: () => void;
-      onBack: () => void;
+      onSuccess: (data: any) => void;
+      onBack: (partialData?: any) => void;
+      initialData?: any;
     };
   };
 }
@@ -43,26 +46,66 @@ interface DocState {
 }
 
 export default function DocumentUpload({ navigation, route }: Props) {
-  const { schoolLevel, applicantType, applicantId, onSuccess, onBack } = route.params;
+  const { schoolLevel, applicantType, applicantId, onSuccess, onBack, initialData } = route.params;
   const requirements = getRequirements(schoolLevel, applicantType);
 
-  const [docStates, setDocStates] = useState<Record<string, DocState>>(() =>
-    Object.fromEntries(
+  const [docStates, setDocStates] = useState<Record<string, DocState>>(() => {
+    if (initialData?.docStates) {
+      return initialData.docStates;
+    }
+    return Object.fromEntries(
       requirements.map((r) => [
         r.id,
         { status: 'not_uploaded', fileName: null, fileUrl: null, submittedAt: null },
       ])
-    )
-  );
+    );
+  });
 
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [loadingInitial, setLoadingInitial] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetchExistingDocuments();
+  }, []);
+
+  const fetchExistingDocuments = async () => {
+    try {
+      const { data, error } = await getApplicantDocuments(applicantId);
+      if (error) {
+        console.error('Error fetching documents:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const newDocStates = { ...docStates };
+        data.forEach((doc: any) => {
+          // Find the requirement ID by name
+          const req = requirements.find((r) => r.name === doc.document_name);
+          if (req) {
+            newDocStates[req.id] = {
+              status: doc.status || 'submitted',
+              fileName: doc.file_name,
+              fileUrl: doc.file_url,
+              submittedAt: doc.submitted_at,
+            };
+          }
+        });
+        setDocStates(newDocStates);
+      }
+    } catch (err) {
+      console.error('Fetch error:', err);
+    } finally {
+      setLoadingInitial(false);
+    }
+  };
 
   const handleFileSelect = async (req: RequirementItem) => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/pdf',
+        type: ['application/pdf', 'image/*'],
         copyToCacheDirectory: true,
+        multiple: false,
       });
 
       if (result.canceled) {
@@ -71,10 +114,10 @@ export default function DocumentUpload({ navigation, route }: Props) {
 
       const file = result.assets[0];
 
-      // Validate file size (3MB max)
-      const maxSize = 3 * 1024 * 1024; // 3MB
+      // Validate file size (5MB max)
+      const maxSize = 5 * 1024 * 1024; // 5MB
       if (file.size && file.size > maxSize) {
-        setErrors((prev) => ({ ...prev, [req.id]: 'File size must not exceed 3MB' }));
+        setErrors((prev) => ({ ...prev, [req.id]: 'File size must not exceed 5MB' }));
         return;
       }
 
@@ -119,17 +162,26 @@ export default function DocumentUpload({ navigation, route }: Props) {
   };
 
   const canContinue = (): boolean => {
-    // Check if all required documents are uploaded
-    const requiredDocs = requirements.filter((r) => r.required);
-    return requiredDocs.every((r) => docStates[r.id]?.status !== 'not_uploaded');
+    if (requirements.length === 0) return true;
+    return requirements.every((r) => {
+      const state = docStates[r.id];
+      return state && state.status !== 'not_uploaded';
+    });
   };
 
-  const handleContinue = () => {
-    if (!canContinue()) {
-      Alert.alert('Missing Documents', 'Please upload all required documents before continuing.');
-      return;
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleContinue = async () => {
+    Alert.alert('System Check', 'Starting final submission... Please wait.');
+    
+    setIsSubmitting(true);
+    try {
+      await onSuccess({ docStates });
+    } catch (err: any) {
+      Alert.alert('Submission Error', err.message || 'Something went wrong');
+    } finally {
+      setIsSubmitting(false);
     }
-    onSuccess();
   };
 
   return (
@@ -153,7 +205,13 @@ export default function DocumentUpload({ navigation, route }: Props) {
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      {loadingInitial ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#F59E0B" />
+          <Text style={{ marginTop: 12, color: '#6b7280' }}>Loading requirements...</Text>
+        </View>
+      ) : (
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Selection Tags */}
         <View style={styles.tags}>
           <View style={styles.tag}>
@@ -168,7 +226,8 @@ export default function DocumentUpload({ navigation, route }: Props) {
         <View style={styles.notesCard}>
           <Text style={styles.notesTitle}>IMPORTANT NOTES:</Text>
           <View style={styles.notesList}>
-            <Text style={styles.noteItem}>• Only PDF files can be uploaded (max 3MB)</Text>
+            <Text style={styles.noteItem}>• PDF or Image files (JPG, PNG) are accepted</Text>
+            <Text style={styles.noteItem}>• Max file size: 5MB per document</Text>
             <Text style={styles.noteItem}>
               • Ensure you submit correct requirements to avoid delays
             </Text>
@@ -305,19 +364,27 @@ export default function DocumentUpload({ navigation, route }: Props) {
           </View>
         )}
       </ScrollView>
+      )}
 
       {/* Footer */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.submitButton, !canContinue() && styles.submitButtonDisabled]}
+          style={[styles.submitButton, (!canContinue() || isSubmitting) && styles.submitButtonDisabled]}
           onPress={handleContinue}
-          disabled={!canContinue()}
+          disabled={!canContinue() || isSubmitting}
           activeOpacity={0.8}
         >
-          <Text style={styles.submitButtonText}>Continue →</Text>
+          {isSubmitting ? (
+            <>
+              <ActivityIndicator size="small" color="#fff" />
+              <Text style={styles.submitButtonText}>Finalizing...</Text>
+            </>
+          ) : (
+            <Text style={styles.submitButtonText}>Continue →</Text>
+          )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.backButtonFooter} onPress={onBack} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.backButtonFooter} onPress={() => onBack({ docStates })} activeOpacity={0.7}>
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
       </View>
@@ -421,7 +488,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     overflow: 'hidden',
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
     borderWidth: 1,
     borderColor: '#f3f4f6',
     marginBottom: 16,
@@ -592,27 +663,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitButtonDisabled: {
     backgroundColor: '#e5e7eb',
-    opacity: 0.6,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   submitButtonText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
     letterSpacing: 0.5,
   },
   backButtonFooter: {
     borderWidth: 2,
-    borderColor: '#F59E0B',
+    borderColor: '#e5e7eb',
     borderRadius: 12,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backButtonText: {
-    color: '#F59E0B',
+    color: '#6b7280',
     fontSize: 14,
     fontWeight: '600',
   },

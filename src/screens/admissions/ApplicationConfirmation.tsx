@@ -12,7 +12,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import type { SchoolLevel, ApplicantType } from '../../types/admissions.types';
-import { shadows } from '../../theme/shadows';
 
 interface Props {
   navigation: any;
@@ -185,18 +184,6 @@ export default function ApplicationConfirmation({ navigation, route }: Props) {
           </View>
         </View>
 
-        {/* Email Notice */}
-        <View style={styles.emailNotice}>
-          <Ionicons name="mail-outline" size={20} color="#3b82f6" />
-          <View style={styles.emailNoticeContent}>
-            <Text style={styles.emailNoticeTitle}>Check Your Email</Text>
-            <Text style={styles.emailNoticeText}>
-              We've sent a confirmation email to {email} with your reference number and important
-              information. If you don't see it, please check your spam folder.
-            </Text>
-          </View>
-        </View>
-
         {/* Action Buttons */}
         <View style={styles.actions}>
           <TouchableOpacity
@@ -297,7 +284,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 2,
     borderColor: '#F59E0B',
-    ...shadows.cardMd,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   referenceLabel: {
     fontSize: 12,
@@ -341,7 +332,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
     borderWidth: 1,
     borderColor: '#f3f4f6',
   },
@@ -378,7 +373,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
     borderWidth: 1,
     borderColor: '#f3f4f6',
   },
@@ -456,7 +455,11 @@ const styles = StyleSheet.create({
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.primaryBtnSm,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   primaryButtonText: {
     color: '#fff',

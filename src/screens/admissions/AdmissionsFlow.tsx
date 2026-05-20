@@ -1,35 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { AppSession, SchoolLevel, ApplicantType } from '../../types/admissions.types';
 import SchoolLevelSelection from './SchoolLevelSelection';
 import ApplicantTypeSelection from './ApplicantTypeSelection';
-import { submitApplication } from '../../services/admissions.service';
-import { shadows } from '../../theme/shadows';
+import { submitApplication, saveProgramSelection } from '../../services/admissions.service';
 
 interface Props {
   navigation: any;
 }
 
 export default function AdmissionsFlow({ navigation }: Props) {
-  const [session, setSession] = useState<AppSession>({
+  const initialSession: AppSession = {
     step: 'select',
     schoolLevel: null,
     applicantType: null,
     applicantId: null,
     firstName: '',
     lastName: '',
+    middleName: '',
     email: '',
+    birthdate: '',
+    mobileNumber: '',
+    street: '',
+    barangay: '',
+    city: '',
+    province: '',
+    zipCode: '',
+    fatherName: '',
+    fatherAddress: '',
+    fatherContact: '',
+    motherName: '',
+    motherAddress: '',
+    motherContact: '',
+    guardianName: '',
+    guardianAddress: '',
+    guardianPhoneHome: '',
+    guardianPhoneWork: '',
+    academicBackground: [],
+    relatives: [],
+    docStates: {},
     collegeDepartment: null,
     collegeProgram: null,
     seniorHighTrack: null,
     tvlStrand: null,
     referenceNumber: null,
-  });
+  };
+
+  const [session, setSession] = useState<AppSession>(initialSession);
+
+  // sessionRef is ALWAYS the latest session value, even inside stale closures.
+  // This is critical because navigation callbacks are passed as route.params and
+  // become frozen at the render time they were created — so they cannot see
+  // updated session state via the normal closure mechanism.
+  const sessionRef = useRef<AppSession>(initialSession);
 
   const updateSession = (patch: Partial<AppSession>) => {
-    setSession((prev) => ({ ...prev, ...patch }));
+    const next = { ...sessionRef.current, ...patch };
+    sessionRef.current = next;
+    setSession(next);
   };
 
   const handleLevelSelect = (level: SchoolLevel) => {
@@ -45,7 +75,6 @@ export default function AdmissionsFlow({ navigation }: Props) {
   const handleContinue = () => {
     if (!canContinue) return;
 
-    // Navigate to create account screen
     navigation.navigate('CreateAccount', {
       schoolLevel: session.schoolLevel,
       applicantType: session.applicantType,
@@ -54,111 +83,235 @@ export default function AdmissionsFlow({ navigation }: Props) {
   };
 
   const handleAccountCreated = (applicantId: string, email: string) => {
+    console.log('Account success callback triggered for:', applicantId);
+    
+    // Update local state first
     updateSession({ applicantId, email, step: 'personal-profile' });
 
-    // Navigate to personal profile screen
+    // Navigate to Personal Profile with all necessary data
     navigation.navigate('PersonalProfile', {
-      schoolLevel: session.schoolLevel,
-      applicantType: session.applicantType,
-      applicantId,
-      email,
+      schoolLevel: sessionRef.current.schoolLevel,
+      applicantType: sessionRef.current.applicantType,
+      applicantId: applicantId,
+      email: email,
+      initialData: {},
       onSuccess: handleProfileCompleted,
       onBack: () => navigation.goBack(),
     });
   };
 
-  const handleProfileCompleted = (firstName: string, lastName: string) => {
-    updateSession({ firstName, lastName, step: 'parent-info' });
+  const handleProfileCompleted = (data: any) => {
+    // sessionRef.current.applicantId is the value set by handleAccountCreated
+    // which is now synchronously reflected in the ref.
+    const applicantId = sessionRef.current.applicantId;
+    console.log('[AdmissionsFlow] Profile completed. applicantId from ref:', applicantId);
 
-    // Navigate to parent info screen
+    updateSession({ 
+      firstName: data.first_name, 
+      lastName: data.last_name,
+      middleName: data.middle_name,
+      birthdate: data.birthdate,
+      mobileNumber: data.mobile_number,
+      street: data.street,
+      barangay: data.barangay,
+      city: data.city,
+      province: data.province,
+      zipCode: data.zipCode,
+      step: 'parent-info' 
+    });
+
     navigation.navigate('ParentInformation', {
-      schoolLevel: session.schoolLevel,
-      applicantType: session.applicantType,
-      applicantId: session.applicantId,
+      schoolLevel: sessionRef.current.schoolLevel,
+      applicantType: sessionRef.current.applicantType,
+      applicantId,
+      initialData: { ...sessionRef.current, ...data },
       onSuccess: handleParentInfoCompleted,
       onBack: () => navigation.goBack(),
     });
   };
 
-  const handleParentInfoCompleted = () => {
-    updateSession({ step: 'academic-background' });
+  const handleParentInfoCompleted = (data: any) => {
+    try {
+      const applicantId = sessionRef.current.applicantId;
+      console.log('[AdmissionsFlow] Parent info completed. applicantId from ref:', applicantId);
 
-    // Navigate to academic background screen
-    navigation.navigate('AcademicBackground', {
-      schoolLevel: session.schoolLevel,
-      applicantType: session.applicantType,
-      applicantId: session.applicantId,
-      onSuccess: handleAcademicBackgroundCompleted,
-      onBack: () => navigation.goBack(),
-    });
+      updateSession({ 
+        fatherName: data.father_name,
+        fatherAddress: data.father_address,
+        fatherContact: data.father_contact,
+        motherName: data.mother_name,
+        motherAddress: data.mother_address,
+        motherContact: data.mother_contact,
+        guardianName: data.guardian_name,
+        guardianAddress: data.guardian_address,
+        guardianPhoneHome: data.guardian_phone_home,
+        guardianPhoneWork: data.guardian_phone_work,
+        step: 'academic-background' 
+      });
+
+      console.log('[AdmissionsFlow] Navigating to AcademicBackground...');
+      navigation.navigate('AcademicBackground', {
+        schoolLevel: sessionRef.current.schoolLevel,
+        applicantType: sessionRef.current.applicantType,
+        applicantId,
+        initialData: { ...sessionRef.current, ...data },
+        onSuccess: handleAcademicBackgroundCompleted,
+        onBack: (partialData?: any) => {
+          if (partialData?.entries) {
+            console.log('[AdmissionsFlow] Saving partial Academic Background on back...');
+            updateSession({ academicBackground: partialData.entries });
+          }
+          navigation.goBack();
+        },
+      });
+      console.log('[AdmissionsFlow] Navigation triggered.');
+    } catch (error) {
+      console.error('[AdmissionsFlow] handleParentInfoCompleted error:', error);
+      Alert.alert('System Error', 'An error occurred during navigation: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
   };
 
-  const handleAcademicBackgroundCompleted = () => {
-    updateSession({ step: 'alumni-info' });
+  const handleAcademicBackgroundCompleted = (data: any) => {
+    try {
+      const applicantId = sessionRef.current.applicantId;
+      console.log('[AdmissionsFlow] Academic background completed. applicantId from ref:', applicantId);
 
-    // Navigate to alumni relatives screen
-    navigation.navigate('AlumniRelativeInformation', {
-      schoolLevel: session.schoolLevel,
-      applicantType: session.applicantType,
-      applicantId: session.applicantId,
-      onSuccess: handleAlumniInfoCompleted,
-      onBack: () => navigation.goBack(),
-    });
+      updateSession({ 
+        academicBackground: data.entries,
+        step: 'alumni-info' 
+      });
+
+      console.log('[AdmissionsFlow] Navigating to AlumniRelativeInformation...');
+      navigation.navigate('AlumniRelativeInformation', {
+        schoolLevel: sessionRef.current.schoolLevel,
+        applicantType: sessionRef.current.applicantType,
+        applicantId,
+        initialData: { ...sessionRef.current, ...data },
+        onSuccess: handleAlumniInfoCompleted,
+        onBack: (partialData?: any) => {
+          if (partialData?.relatives) {
+            updateSession({ relatives: partialData.relatives });
+          }
+          navigation.goBack();
+        },
+      });
+      console.log('[AdmissionsFlow] Navigation triggered.');
+    } catch (error) {
+      console.error('[AdmissionsFlow] handleAcademicBackgroundCompleted error:', error);
+      Alert.alert('System Error', 'An error occurred during navigation: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
   };
 
-  const handleAlumniInfoCompleted = () => {
-    updateSession({ step: 'program-selection' });
+  const handleAlumniInfoCompleted = (data: any) => {
+    const applicantId = sessionRef.current.applicantId;
 
-    // Navigate to program selection screen
+    updateSession({ 
+      relatives: data.relatives,
+      step: 'program-selection' 
+    });
+
+    console.log('[AdmissionsFlow] Alumni info completed. Processing next step...');
+
+    // Skip Program Selection for Kinder, Elementary, and JHS
+    const skipProgramSelection = 
+      sessionRef.current.schoolLevel === 'Kinder' || 
+      sessionRef.current.schoolLevel === 'Elementary' || 
+      sessionRef.current.schoolLevel === 'Junior High School';
+
+    if (skipProgramSelection) {
+      console.log('[AdmissionsFlow] Skipping ProgramSelection for', sessionRef.current.schoolLevel);
+      
+      // Save program selection with nulls in background for data consistency
+      saveProgramSelection({
+        applicant_id: applicantId!,
+        school_level: sessionRef.current.schoolLevel!,
+        applicant_type: sessionRef.current.applicantType!,
+      });
+
+      updateSession({ step: 'documents' });
+      navigation.navigate('DocumentUpload', {
+        schoolLevel: sessionRef.current.schoolLevel,
+        applicantType: sessionRef.current.applicantType,
+        applicantId,
+        initialData: { ...sessionRef.current, ...data },
+        onSuccess: handleDocumentsCompleted,
+        onBack: () => navigation.goBack(),
+      });
+      return;
+    }
+
+    console.log('[AdmissionsFlow] Navigating to ProgramSelection...');
     navigation.navigate('ProgramSelection', {
-      schoolLevel: session.schoolLevel,
-      applicantType: session.applicantType,
-      applicantId: session.applicantId,
+      schoolLevel: sessionRef.current.schoolLevel,
+      applicantType: sessionRef.current.applicantType,
+      applicantId,
+      initialData: { ...sessionRef.current, ...data },
       onSuccess: handleProgramSelectionCompleted,
-      onBack: () => navigation.goBack(),
+      onBack: (partialData?: any) => {
+        if (partialData) {
+          updateSession({
+            collegeDepartment: partialData.collegeDepartment,
+            collegeProgram: partialData.collegeProgram,
+            seniorHighTrack: partialData.seniorHighTrack,
+          });
+        }
+        navigation.goBack();
+      },
     });
   };
 
   const handleProgramSelectionCompleted = (data: any) => {
-    updateSession({
-      step: 'documents',
-      collegeDepartment: data.collegeDepartment || null,
-      collegeProgram: data.collegeProgram || null,
-      seniorHighTrack: data.seniorHighTrack || null,
-      tvlStrand: data.tvlStrand || null,
+    const applicantId = sessionRef.current.applicantId;
+
+    updateSession({ 
+      collegeDepartment: data.college_department,
+      collegeProgram: data.college_program,
+      seniorHighTrack: data.senior_high_track,
+      step: 'documents' 
     });
 
-    // Navigate to document upload screen
     navigation.navigate('DocumentUpload', {
-      schoolLevel: session.schoolLevel,
-      applicantType: session.applicantType,
-      applicantId: session.applicantId,
-      onSuccess: handleDocumentUploadCompleted,
-      onBack: () => navigation.goBack(),
+      schoolLevel: sessionRef.current.schoolLevel,
+      applicantType: sessionRef.current.applicantType,
+      applicantId,
+      initialData: { ...sessionRef.current, ...data },
+      onSuccess: handleDocumentsCompleted,
+      onBack: (partialData?: any) => {
+        if (partialData?.docStates) {
+          updateSession({ docStates: partialData.docStates });
+        }
+        navigation.goBack();
+      },
     });
   };
 
-  const handleDocumentUploadCompleted = async () => {
-    updateSession({ step: 'confirmation' });
+  const handleDocumentsCompleted = async (data: any) => {
+    const s = sessionRef.current;  // snapshot of latest session
 
-    // Submit the application
-    const res = await submitApplication(session.applicantId!);
+    updateSession({ 
+      docStates: data.docStates,
+      step: 'confirmation' 
+    });
+
+    console.log('[AdmissionsFlow] Submitting application for:', s.applicantId);
+    const res = await submitApplication(s.applicantId!);
 
     if (res.error) {
-      Alert.alert('Error', res.error.message);
+      Alert.alert('Database Error', 'Your application profile was found but the final submission failed: ' + res.error.message);
       return;
     }
+
+    Alert.alert('Success!', 'Your application has been received. Navigating to confirmation...');
 
     const referenceNumber = res.data!.reference_number;
     updateSession({ referenceNumber });
 
-    // Navigate to confirmation screen
     navigation.navigate('ApplicationConfirmation', {
       referenceNumber,
-      email: session.email,
-      schoolLevel: session.schoolLevel,
-      applicantType: session.applicantType,
-      applicantName: `${session.firstName} ${session.lastName}`,
+      email: s.email,
+      schoolLevel: s.schoolLevel,
+      applicantType: s.applicantType,
+      applicantName: `${s.firstName} ${s.lastName}`,
     });
   };
 
@@ -411,7 +564,11 @@ const styles = StyleSheet.create({
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.primaryBtnSm,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   continueButtonDisabled: {
     backgroundColor: '#e5e7eb',

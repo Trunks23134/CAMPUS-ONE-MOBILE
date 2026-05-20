@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme/colors';
-import { shadows } from '../theme/shadows';
 import { useNotifications, Notification } from '../context/NotificationsContext';
 import { useNotificationPanel } from '../context/NotificationPanelContext';
 
@@ -97,7 +96,11 @@ const styles = StyleSheet.create({
     top: 0, right: 0, bottom: 0,
     width: PANEL_W,
     backgroundColor: '#fff',
-    ...shadows.fab,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    shadowOffset: { width: -4, height: 0 },
+    elevation: 16,
   },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',

@@ -9,13 +9,13 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import type { SchoolLevel, ApplicantType } from '../../types/admissions.types';
 import { saveApplicantProfile } from '../../services/admissions.service';
-import { shadows } from '../../theme/shadows';
 
 interface Props {
   navigation: any;
@@ -25,8 +25,9 @@ interface Props {
       applicantType: ApplicantType;
       applicantId: string;
       email: string;
-      onSuccess: (firstName: string, lastName: string) => void;
+      onSuccess: (data: any) => void;
       onBack: () => void;
+      initialData?: any;
     };
   };
 }
@@ -36,6 +37,7 @@ interface FormState {
   lastName: string;
   middleName: string;
   birthdate: Date | null;
+  birthdateInput: string;
   mobileNumber: string;
   street: string;
   barangay: string;
@@ -44,20 +46,28 @@ interface FormState {
   zipCode: string;
 }
 
+const formatDateForInput = (date: Date): string => {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${month}/${day}/${year}`;
+};
+
 export default function PersonalProfile({ navigation, route }: Props) {
-  const { schoolLevel, applicantType, applicantId, onSuccess, onBack } = route.params;
+  const { schoolLevel, applicantType, applicantId, onSuccess, onBack, initialData } = route.params;
 
   const [form, setForm] = useState<FormState>({
-    firstName: '',
-    lastName: '',
-    middleName: '',
-    birthdate: null,
-    mobileNumber: '',
-    street: '',
-    barangay: '',
-    city: '',
-    province: '',
-    zipCode: '',
+    firstName: initialData?.firstName || '',
+    lastName: initialData?.lastName || '',
+    middleName: initialData?.middleName || '',
+    birthdate: initialData?.birthdate ? new Date(initialData.birthdate) : null,
+    birthdateInput: initialData?.birthdate ? formatDateForInput(new Date(initialData.birthdate)) : '',
+    mobileNumber: initialData?.mobileNumber || '',
+    street: initialData?.street || '',
+    barangay: initialData?.barangay || '',
+    city: initialData?.city || '',
+    province: initialData?.province || '',
+    zipCode: initialData?.zipCode || '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -65,7 +75,12 @@ export default function PersonalProfile({ navigation, route }: Props) {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const setField = (field: keyof FormState) => (value: any) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    let finalValue = value;
+    if (field === 'zipCode' || field === 'mobileNumber') {
+      // Numbers only
+      finalValue = value.replace(/[^0-9]/g, '');
+    }
+    setForm((prev) => ({ ...prev, [field]: finalValue }));
     setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
@@ -74,12 +89,24 @@ export default function PersonalProfile({ navigation, route }: Props) {
 
     if (!form.firstName.trim()) errs.firstName = 'First name is required';
     if (!form.lastName.trim()) errs.lastName = 'Last name is required';
-    if (!form.birthdate) errs.birthdate = 'Birthdate is required';
+    if (!form.middleName.trim()) errs.middleName = 'Middle name is required';
+    
+    const currentYear = new Date().getFullYear();
+    if (!form.birthdate && !form.birthdateInput) {
+      errs.birthdate = 'Birthdate is required';
+    } else if (form.birthdateInput && (!form.birthdate || isNaN(form.birthdate.getTime()))) {
+      errs.birthdate = 'Invalid date';
+    } else if (form.birthdate) {
+      const birthYear = form.birthdate.getFullYear();
+      if (birthYear < 1920 || birthYear > currentYear - 2) {
+        errs.birthdate = 'Invalid date';
+      }
+    }
 
     if (!form.mobileNumber.trim()) {
       errs.mobileNumber = 'Mobile number is required';
-    } else if (!/^[0-9+\-\s()]{7,15}$/.test(form.mobileNumber)) {
-      errs.mobileNumber = 'Enter a valid mobile number';
+    } else if (!/^\d{11}$/.test(form.mobileNumber)) {
+      errs.mobileNumber = 'Mobile number must be exactly 11 digits (e.g., 09123456789)';
     }
 
     if (!form.street.trim()) errs.street = 'Street address is required';
@@ -102,7 +129,7 @@ export default function PersonalProfile({ navigation, route }: Props) {
       .join(', ');
 
     const birthdateStr = form.birthdate
-      ? form.birthdate.toISOString().split('T')[0]
+      ? `${form.birthdate.getFullYear()}-${String(form.birthdate.getMonth() + 1).padStart(2, '0')}-${String(form.birthdate.getDate()).padStart(2, '0')}`
       : '';
 
     const res = await saveApplicantProfile({
@@ -122,17 +149,65 @@ export default function PersonalProfile({ navigation, route }: Props) {
     if (res.error) {
       Alert.alert('Error', res.error.message);
     } else {
-      onSuccess(form.firstName, form.lastName);
+      onSuccess({
+        first_name: form.firstName,
+        last_name: form.lastName,
+        middle_name: form.middleName,
+        birthdate: birthdateStr,
+        mobile_number: form.mobileNumber,
+        street: form.street,
+        barangay: form.barangay,
+        city: form.city,
+        province: form.province,
+        zipCode: form.zipCode,
+      });
     }
   };
 
-  const formatDate = (date: Date | null): string => {
-    if (!date) return '';
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+  const handleBirthdateChange = (text: string) => {
+    // Auto-format MM/DD/YYYY
+    let cleaned = text.replace(/\D/g, '');
+    if (cleaned.length > 8) cleaned = cleaned.slice(0, 8);
+    
+    let formatted = cleaned;
+    if (cleaned.length > 2) formatted = cleaned.slice(0, 2) + '/' + cleaned.slice(2);
+    if (cleaned.length > 4) formatted = formatted.slice(0, 5) + '/' + formatted.slice(5);
+    
+    setForm(prev => ({ ...prev, birthdateInput: formatted }));
+    
+    // Try to parse
+    if (cleaned.length === 8) {
+      const month = parseInt(cleaned.slice(0, 2), 10);
+      const day = parseInt(cleaned.slice(2, 4), 10);
+      const year = parseInt(cleaned.slice(4, 8), 10);
+      
+      const date = new Date(year, month - 1, day);
+      if (
+        date.getFullYear() === year && 
+        date.getMonth() === month - 1 && 
+        date.getDate() === day &&
+        date <= new Date()
+      ) {
+        setForm(prev => ({ ...prev, birthdate: date }));
+      } else {
+        setForm(prev => ({ ...prev, birthdate: null }));
+      }
+    } else {
+      setForm(prev => ({ ...prev, birthdate: null }));
+    }
+  };
+
+  const handleDateSelect = (date: Date) => {
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    const formatted = `${month}/${day}/${year}`;
+    
+    setForm(prev => ({ 
+      ...prev, 
+      birthdate: date, 
+      birthdateInput: formatted 
+    }));
   };
 
   return (
@@ -156,7 +231,11 @@ export default function PersonalProfile({ navigation, route }: Props) {
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Selection Tags */}
         <View style={styles.tags}>
           <View style={styles.tag}>
@@ -198,29 +277,38 @@ export default function PersonalProfile({ navigation, route }: Props) {
 
           <View style={styles.field}>
             <Text style={styles.label}>
-              Middle Name <Text style={styles.optional}>(optional)</Text>
+              Middle Name <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.middleName && styles.inputError]}
               value={form.middleName}
               onChangeText={setField('middleName')}
               placeholder="Santos"
               placeholderTextColor="#9ca3af"
             />
+            {errors.middleName ? <Text style={styles.errorText}>{errors.middleName}</Text> : null}
           </View>
 
-          {/* Birthdate */}
           <View style={styles.field}>
             <Text style={styles.label}>Birthdate <Text style={styles.required}>*</Text></Text>
-            <TouchableOpacity
-              style={[styles.input, styles.dateInput, errors.birthdate && styles.inputError]}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Text style={form.birthdate ? styles.dateText : styles.datePlaceholder}>
-                {form.birthdate ? formatDate(form.birthdate) : 'Select birthdate'}
-              </Text>
-              <Ionicons name="calendar" size={20} color="#9ca3af" />
-            </TouchableOpacity>
+            <View style={[styles.inputContainer, errors.birthdate && styles.inputError]}>
+              <TextInput
+                style={styles.flexInput}
+                value={form.birthdateInput}
+                onChangeText={handleBirthdateChange}
+                placeholder="MM/DD/YYYY"
+                placeholderTextColor="#9ca3af"
+                keyboardType="numeric"
+                maxLength={10}
+              />
+              <TouchableOpacity
+                style={styles.calendarIcon}
+                onPress={() => setShowDatePicker(true)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="calendar" size={20} color="#F59E0B" />
+              </TouchableOpacity>
+            </View>
             {errors.birthdate ? <Text style={styles.errorText}>{errors.birthdate}</Text> : null}
           </View>
 
@@ -231,9 +319,10 @@ export default function PersonalProfile({ navigation, route }: Props) {
               style={[styles.input, errors.mobileNumber && styles.inputError]}
               value={form.mobileNumber}
               onChangeText={setField('mobileNumber')}
-              placeholder="09XX XXX XXXX"
+              placeholder="09123456789"
               placeholderTextColor="#9ca3af"
-              keyboardType="phone-pad"
+              keyboardType="numeric"
+              maxLength={11}
             />
             {errors.mobileNumber ? <Text style={styles.errorText}>{errors.mobileNumber}</Text> : null}
           </View>
@@ -301,6 +390,7 @@ export default function PersonalProfile({ navigation, route }: Props) {
                 placeholder="Enter ZIP code"
                 placeholderTextColor="#9ca3af"
                 keyboardType="numeric"
+                maxLength={6}
               />
               {errors.zipCode ? <Text style={styles.errorText}>{errors.zipCode}</Text> : null}
             </View>
@@ -309,18 +399,41 @@ export default function PersonalProfile({ navigation, route }: Props) {
       </ScrollView>
 
       {showDatePicker && (
-        <DateTimePicker
-          value={form.birthdate || new Date()}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(event, selectedDate) => {
-            setShowDatePicker(Platform.OS === 'ios');
-            if (selectedDate) {
-              setField('birthdate')(selectedDate);
-            }
-          }}
-          maximumDate={new Date()}
-        />
+        Platform.OS === 'ios' ? (
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                  <Text style={styles.doneButtonText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={form.birthdate || new Date()}
+                mode="date"
+                display="spinner"
+                onChange={(event, selectedDate) => {
+                  if (selectedDate) {
+                    handleDateSelect(selectedDate);
+                  }
+                }}
+                maximumDate={new Date()}
+              />
+            </View>
+          </View>
+        ) : (
+          <DateTimePicker
+            value={form.birthdate || new Date()}
+            mode="date"
+            display="default"
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(false);
+              if (selectedDate) {
+                handleDateSelect(selectedDate);
+              }
+            }}
+            maximumDate={new Date()}
+          />
+        )
       )}
 
       {/* Footer */}
@@ -345,6 +458,7 @@ export default function PersonalProfile({ navigation, route }: Props) {
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -423,7 +537,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
     borderWidth: 1,
     borderColor: '#f3f4f6',
   },
@@ -465,18 +583,25 @@ const styles = StyleSheet.create({
     borderColor: '#f87171',
     backgroundColor: '#fef2f2',
   },
-  dateInput: {
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    backgroundColor: '#f9fafb',
+    paddingHorizontal: 4,
   },
-  dateText: {
+  flexInput: {
+    flex: 1,
+    height: 48,
+    paddingHorizontal: 12,
     fontSize: 14,
     color: '#1f2937',
   },
-  datePlaceholder: {
-    fontSize: 14,
-    color: '#9ca3af',
+  calendarIcon: {
+    padding: 10,
   },
   errorText: {
     fontSize: 12,
@@ -513,7 +638,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    ...shadows.primaryBtnSm,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitButtonDisabled: {
     opacity: 0.6,
@@ -536,5 +665,33 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontSize: 14,
     fontWeight: '600',
+  },
+  modalContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    height: '100%',
+    justifyContent: 'flex-end',
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  doneButtonText: {
+    color: '#F59E0B',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
