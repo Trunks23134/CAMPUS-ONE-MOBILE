@@ -33,6 +33,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 async function detectRole(email: string): Promise<UserRole> {
   const { data: student } = await supabase
+    .schema('student')
     .from('student_accounts')
     .select('id')
     .eq('email', email)
@@ -40,6 +41,7 @@ async function detectRole(email: string): Promise<UserRole> {
   if (student) return 'student';
 
   const { data: professor } = await supabase
+    .schema('faculty')
     .from('professor_users')
     .select('id')
     .eq('email', email)
@@ -54,6 +56,7 @@ async function detectRole(email: string): Promise<UserRole> {
   if (admin) return 'admin';
 
   const { data: alumni } = await supabase
+    .schema('alumni')
     .from('alumni')
     .select('id')
     .eq('email', email)
@@ -61,6 +64,7 @@ async function detectRole(email: string): Promise<UserRole> {
   if (alumni) return 'alumni';
 
   const { data: applicant } = await supabase
+    .schema('applicant')
     .from('applicant_profiles')
     .select('id, status')
     .eq('email', email)
