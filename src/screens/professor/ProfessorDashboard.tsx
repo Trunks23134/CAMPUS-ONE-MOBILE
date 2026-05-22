@@ -80,19 +80,21 @@ export default function ProfessorDashboard({ navigation, onLogout }: ProfessorDa
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity style={styles.menuButton} onPress={openSidebar}>
-                    <Ionicons name="menu" size={24} color="#fff" />
-                </TouchableOpacity>
+            <View style={styles.headerSafeArea}>
+                <View style={styles.header}>
+                    <TouchableOpacity style={styles.menuButton} onPress={openSidebar}>
+                        <Ionicons name="menu" size={24} color="#fff" />
+                    </TouchableOpacity>
 
-                <View style={styles.headerTitle}>
-                    <Text style={styles.headerTitleOrange}>CAMPUS</Text>
-                    <Text style={styles.headerTitleWhite}>Faculty</Text>
+                    <View style={styles.headerTitle}>
+                        <Text style={styles.headerTitleOrange}>CAMPUS</Text>
+                        <Text style={styles.headerTitleWhite}>Faculty</Text>
+                    </View>
+
+                    <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                        <Ionicons name="log-out-outline" size={24} color="#fff" />
+                    </TouchableOpacity>
                 </View>
-
-                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                    <Ionicons name="log-out-outline" size={24} color="#fff" />
-                </TouchableOpacity>
             </View>
 
             {/* Sidebar Modal */}
@@ -398,7 +400,10 @@ function ActionCard({
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: '#1a1a1a',
+    },
+    headerSafeArea: {
+        backgroundColor: '#1a1a1a',
     },
     header: {
         backgroundColor: '#1a1a1a',
@@ -561,6 +566,7 @@ const styles = StyleSheet.create({
     // Content
     content: {
         flex: 1,
+        backgroundColor: '#f9fafb',
     },
     contentContainer: {
         paddingHorizontal: 16,

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
@@ -123,13 +124,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase.auth.getSession();
       if (error) throw error;
       setSession(data.session ?? null);
-    } catch {
+    } catch (error: unknown) {
+      if (error instanceof Error && /refresh token/i.test(error.message)) {
+        await supabase.auth.signOut().catch(() => {});
+      }
       setSession(null);
     }
   };
 
   useEffect(() => {
     let mounted = true;
+
+    const clearInvalidSession = async () => {
+      await supabase.auth.signOut().catch(() => {});
+      try {
+        await AsyncStorage.removeItem('supabase.auth.token');
+        await AsyncStorage.removeItem('supabase.auth.refresh.token');
+      } catch {
+        // ignore storage cleanup failures
+      }
+      if (mounted) {
+        setSession(null);
+        setProfile(null);
+        setUserRole(null);
+      }
+    };
 
     const init = async () => {
       try {
@@ -141,8 +160,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await fetchProfile(data.session.user.id, data.session.user.email ?? '');
           }
         }
-      } catch {
-        if (mounted) setSession(null);
+      } catch (error: unknown) {
+        if (mounted) {
+          if (error instanceof Error && /refresh token/i.test(error.message)) {
+            await clearInvalidSession();
+          } else {
+            setSession(null);
+          }
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -152,16 +177,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, nextSession: Session | null) => {
-        if (mounted) {
-          setSession(nextSession ?? null);
-          if (nextSession?.user) {
-            setTimeout(() => fetchProfile(nextSession.user.id, nextSession.user.email ?? ''), 0);
-          } else {
-            setProfile(null);
-            setUserRole(null);
-          }
+        if (!mounted) return;
+
+        if (event === 'TOKEN_REFRESHED' && !nextSession) {
+          await clearInvalidSession();
           setLoading(false);
+          return;
         }
+
+        setSession(nextSession ?? null);
+        if (nextSession?.user) {
+          setTimeout(() => fetchProfile(nextSession.user.id, nextSession.user.email ?? ''), 0);
+        } else {
+          setProfile(null);
+          setUserRole(null);
+        }
+        setLoading(false);
       }
     );
 

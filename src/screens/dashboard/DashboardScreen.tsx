@@ -8,6 +8,7 @@ import { getFontStyle, themeFont } from "../../theme/fonts";
 import Card from "../../components/Card";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationsContext";
+import TopBar from '../../components/TopBar';
 import { supabase } from "../../lib/supabase";
 import { useNotificationPanel } from "../../context/NotificationPanelContext";
 
@@ -15,7 +16,6 @@ export default function DashboardScreen() {
   const nav = useNavigation<any>();
   const { profile } = useAuth();
   const { unreadCount } = useNotifications();
-  const { toggle: toggleNotifications } = useNotificationPanel();
   const [pressedBtn, setPressedBtn] = React.useState<string | null>(null);
   const [enrolledCourses, setEnrolledCourses] = React.useState(0);
   const [enrolledUnits, setEnrolledUnits] = React.useState(0);
@@ -44,28 +44,7 @@ export default function DashboardScreen() {
 
   return (
     <View style={styles.page}>
-      {/* Top bar */}
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => nav.dispatch(DrawerActions.openDrawer())}>
-          <Ionicons name="menu" size={22} color="white" />
-        </TouchableOpacity>
-
-        <Text style={styles.topTitle}>
-          <Text style={{ color: colors.primary, fontWeight: "900" }}>CAMPUS</Text>{" "}
-          <Text style={{ color: "white", fontWeight: "900" }}>Portal</Text>
-        </Text>
-
-        <View style={styles.topIcons}>
-          <TouchableOpacity onPress={toggleNotifications}>
-            <Ionicons name="notifications" size={18} color="white" />
-            {unreadCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
+      <TopBar />
 
       <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 30 }}>
         <Text style={styles.h1}>Dashboard</Text>

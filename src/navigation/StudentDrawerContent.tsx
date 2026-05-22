@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../theme/colors";
 const colors = theme.colors;
 
@@ -99,6 +100,7 @@ function SubRow({
 }
 
 export default function StudentDrawerContent({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [enrollmentOpen, setEnrollmentOpen] = useState(true);
 
   const state = navigation.getState?.();
@@ -111,7 +113,7 @@ export default function StudentDrawerContent({ navigation }: Props) {
 
   return (
     <DrawerContentScrollView
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[styles.container, { paddingTop: insets.top + 18 }]}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}

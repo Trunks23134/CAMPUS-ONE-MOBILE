@@ -1,8 +1,10 @@
 import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import CampusPortalBrand from '../../components/CampusPortalBrand';
 
 export default function WelcomeScreen({ navigation }: { navigation: any }) {
   const { session, userRole, loading } = useAuth();
@@ -17,18 +19,13 @@ export default function WelcomeScreen({ navigation }: { navigation: any }) {
   }, [session, userRole, loading]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Ionicons name="school-outline" size={24} color="#F59E0B" />
-          <View style={styles.headerTitle}>
-            <Text style={styles.headerTitleOrange}>CAMPUS</Text>
-            <Text style={styles.headerTitleWhite}> Portal</Text>
-          </View>
+    <LinearGradient colors={['#1a1a1a', '#2d2d2d', '#1a1a1a']} style={styles.gradient}>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <CampusPortalBrand />
         </View>
-      </View>
 
-      <View style={styles.content}>
+        <View style={styles.content}>
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeTitle}>Welcome</Text>
           <Text style={styles.welcomeSubtitle}>Your gateway to education</Text>
@@ -48,7 +45,7 @@ export default function WelcomeScreen({ navigation }: { navigation: any }) {
               <Ionicons name="arrow-forward" size={20} color="#fff" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.alumniButton} onPress={() => navigation.navigate('AlumniSignUpFlow')}>
+            <TouchableOpacity style={styles.alumniButton} onPress={() => navigation.navigate('AlumniRegister')}>
               <View style={styles.buttonContent}>
                 <Ionicons name="school-outline" size={24} color="#F59E0B" />
                 <View style={styles.buttonText}>
@@ -84,17 +81,19 @@ export default function WelcomeScreen({ navigation }: { navigation: any }) {
         </View>
       </View>
     </SafeAreaView>
+  </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#2d3748' },
-  header: { backgroundColor: '#1a1a1a', height: 56, justifyContent: 'center', alignItems: 'center' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  gradient: { flex: 1 },
+  container: { flex: 1, backgroundColor: 'transparent' },
+  header: { backgroundColor: 'transparent', height: 64, width: '100%', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
+  logoImage: { width: 36, height: 36, borderRadius: 10, marginLeft: 10 },
   headerTitle: { flexDirection: 'row', alignItems: 'center' },
   headerTitleOrange: { color: '#F59E0B', fontSize: 16, fontWeight: 'bold', letterSpacing: -0.5 },
   headerTitleWhite: { color: '#fff', fontSize: 16, fontWeight: '300', letterSpacing: -0.5 },
-  content: { flex: 1, padding: 24, justifyContent: 'center' },
+  content: { flex: 1, padding: 24, justifyContent: 'center', backgroundColor: 'transparent' },
   welcomeSection: { alignItems: 'center', marginBottom: 48 },
   welcomeTitle: { fontSize: 32, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
   welcomeSubtitle: { fontSize: 16, color: '#cbd5e0' },

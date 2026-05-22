@@ -48,26 +48,28 @@ export default function AuthStack() {
     <Stack.Navigator initialRouteName="Welcome" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="AlumniRegister" component={(props: any) => (
-        <AlumniRegisterScreen
-          onBack={() => props.navigation.goBack()}
-          onSuccess={() => props.navigation.navigate('Login')}
-        />
-      )} />
+      <Stack.Screen name="AlumniRegister">
+        {(props: any) => (
+          <AlumniRegisterScreen
+            onBack={() => props.navigation.goBack()}
+            onSuccess={() => props.navigation.navigate('Login')}
+          />
+        )}
+      </Stack.Screen>
       <Stack.Screen name="AdmissionsFlow" component={AdmissionsFlow} />
       <Stack.Screen name="AdmissionsHome" component={AdmissionsHome} />
       <Stack.Screen name="AdmissionsWebView" component={AdmissionsWebView} />
-      <Stack.Screen name="CreateAccount" component={(props: any) => <CreateAccount {...props} />} />
-      <Stack.Screen name="PersonalProfile" component={(props: any) => <PersonalProfile {...props} />} />
-      <Stack.Screen name="ParentInformation" component={(props: any) => <ParentInformation {...props} />} />
-      <Stack.Screen name="AcademicBackground" component={(props: any) => <AcademicBackground {...props} />} />
-      <Stack.Screen name="AlumniRelativeInformation" component={(props: any) => <AlumniRelativeInformation {...props} />} />
-      <Stack.Screen name="ProgramSelection" component={(props: any) => <ProgramSelection {...props} />} />
-      <Stack.Screen name="DocumentUpload" component={(props: any) => <DocumentUpload {...props} />} />
-      <Stack.Screen name="ApplicationConfirmation" component={(props: any) => <ApplicationConfirmation {...props} />} />
+      <Stack.Screen name="CreateAccount">{(props: any) => <CreateAccount {...props} />}</Stack.Screen>
+      <Stack.Screen name="PersonalProfile">{(props: any) => <PersonalProfile {...props} />}</Stack.Screen>
+      <Stack.Screen name="ParentInformation">{(props: any) => <ParentInformation {...props} />}</Stack.Screen>
+      <Stack.Screen name="AcademicBackground">{(props: any) => <AcademicBackground {...props} />}</Stack.Screen>
+      <Stack.Screen name="AlumniRelativeInformation">{(props: any) => <AlumniRelativeInformation {...props} />}</Stack.Screen>
+      <Stack.Screen name="ProgramSelection">{(props: any) => <ProgramSelection {...props} />}</Stack.Screen>
+      <Stack.Screen name="DocumentUpload">{(props: any) => <DocumentUpload {...props} />}</Stack.Screen>
+      <Stack.Screen name="ApplicationConfirmation">{(props: any) => <ApplicationConfirmation {...props} />}</Stack.Screen>
       <Stack.Screen name="ApplicationTracking" component={ApplicationTracking} />
-      <Stack.Screen name="SchoolLevelSelection" component={(props: any) => <SchoolLevelSelection {...props} />} />
-      <Stack.Screen name="ApplicantTypeSelection" component={(props: any) => <ApplicantTypeSelection {...props} />} />
+      <Stack.Screen name="SchoolLevelSelection">{(props: any) => <SchoolLevelSelection {...props} />}</Stack.Screen>
+      <Stack.Screen name="ApplicantTypeSelection">{(props: any) => <ApplicantTypeSelection {...props} />}</Stack.Screen>
     </Stack.Navigator>
   );
 }

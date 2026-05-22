@@ -1,3 +1,4 @@
+import 'use-sync-external-store/shim';
 import { registerRootComponent } from 'expo';
 
 import App from './App';

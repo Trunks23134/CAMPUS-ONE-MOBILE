@@ -2,10 +2,12 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme/colors';
 const colors = theme.colors;
 import { useNotifications } from '../context/NotificationsContext';
 import { useNotificationPanel } from '../context/NotificationPanelContext';
+import CampusPortalBrand from './CampusPortalBrand';
 
 type Props = {
   title?: string;
@@ -17,29 +19,39 @@ export default function TopBar({ title }: Props) {
   const { toggle } = useNotificationPanel();
 
   return (
-    <View style={styles.topBar}>
-      <TouchableOpacity onPress={() => nav.dispatch(DrawerActions.openDrawer())}>
-        <Ionicons name="menu" size={22} color="white" />
-      </TouchableOpacity>
+    <SafeAreaView edges={["top"]} style={styles.safeArea}>
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          onPress={() => nav.dispatch(DrawerActions.openDrawer())}
+          style={styles.iconButton}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <Ionicons name="menu" size={22} color="white" />
+        </TouchableOpacity>
 
-      <Text style={styles.topTitle}>
-        <Text style={styles.campusText}>CAMPUS</Text>
-        {title ? ` ${title}` : ' Portal'}
-      </Text>
+        <CampusPortalBrand containerStyle={styles.topTitleWrap} titleStyle={styles.topTitle} />
 
-      <TouchableOpacity onPress={toggle} style={styles.bellWrap}>
-        <Ionicons name="notifications" size={18} color="white" />
-        {unreadCount > 0 && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    </View>
+        <TouchableOpacity
+          onPress={toggle}
+          style={[styles.iconButton, styles.bellWrap]}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <Ionicons name="notifications" size={18} color="white" />
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    backgroundColor: '#0B0F14',
+  },
   topBar: {
     height: 56,
     backgroundColor: '#0B0F14',
@@ -48,7 +60,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 14,
   },
+  iconButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   topTitle: { color: 'white', fontWeight: '800' },
+  topTitleWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   campusText: { color: colors.primary },
   bellWrap: { position: 'relative' },
   badge: {

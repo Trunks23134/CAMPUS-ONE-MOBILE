@@ -1,11 +1,12 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, DrawerActions } from "@react-navigation/native";
 import { theme } from "../../../theme/colors";
 const colors = theme.colors;
 import { getFontStyle, themeFont } from "../../../theme/fonts";
 import Card from "../../../components/Card";
+import TopBar from '../../../components/TopBar';
 import { useAuth } from "../../../context/AuthContext";
 import { useNotifications } from "../../../context/NotificationsContext";
 import { supabase } from "../../../lib/supabase";
@@ -15,7 +16,7 @@ export default function DashboardScreen() {
   const nav = useNavigation<any>();
   const { profile } = useAuth();
   const { unreadCount } = useNotifications();
-  const { toggle: toggleNotifications } = useNotificationPanel();
+  const { isOpen: notificationsOpen, close: closeNotifications } = useNotificationPanel();
   const [pressedBtn, setPressedBtn] = React.useState<string | null>(null);
   const [enrolledCourses, setEnrolledCourses] = React.useState(0);
   const [enrolledUnits, setEnrolledUnits] = React.useState(0);
@@ -43,31 +44,14 @@ export default function DashboardScreen() {
   }, [profile?.id]);
 
   return (
-    <View style={styles.page}>
-      {/* Top bar */}
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => nav.dispatch(DrawerActions.openDrawer())}>
-          <Ionicons name="menu" size={22} color="white" />
-        </TouchableOpacity>
+    <View style={styles.container}>
+      <TopBar />
 
-        <Text style={styles.topTitle}>
-          <Text style={{ color: colors.primary, fontWeight: "900" }}>CAMPUS</Text>{" "}
-          <Text style={{ color: "white", fontWeight: "900" }}>Portal</Text>
-        </Text>
-
-        <View style={styles.topIcons}>
-          <TouchableOpacity onPress={toggleNotifications}>
-            <Ionicons name="notifications" size={18} color="white" />
-            {unreadCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 30 }}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={{ padding: 14, paddingBottom: 30 }}
+        onTouchStart={() => { if (notificationsOpen) closeNotifications(); }}
+      >
         <Text style={styles.h1}>Dashboard</Text>
         <Text style={styles.sub}>Welcome back, {displayName}</Text>
 
@@ -144,8 +128,16 @@ function StatusRow({ left, right, rightColor }: { left: string; right: string; r
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#F3F4F6" },
-  topBar: { height: 56, backgroundColor: "#0B0F14", flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14 },
+  container: { flex: 1, backgroundColor: "#0B0F14" },
+  content: { flex: 1, backgroundColor: "#F3F4F6" },
+  topBar: {
+    height: 56,
+    backgroundColor: "#0B0F14",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+  },
   topTitle: { fontSize: 13.5 },
   topIcons: { flexDirection: "row", alignItems: "center" },
   badge: { position: "absolute", right: -8, top: -6, backgroundColor: "#EF4444", borderRadius: 999, minWidth: 16, height: 16, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },

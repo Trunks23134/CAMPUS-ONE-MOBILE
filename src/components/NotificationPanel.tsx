@@ -1,8 +1,9 @@
 import React from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
-  ActivityIndicator, Animated, Dimensions,
+  ActivityIndicator, Animated, Dimensions, Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme/colors';
 import { useNotifications, Notification } from '../context/NotificationsContext';
@@ -13,6 +14,7 @@ const SCREEN_W = Dimensions.get('window').width;
 const PANEL_W = Math.min(SCREEN_W * 0.85, 340);
 
 export default function NotificationPanel() {
+  const insets = useSafeAreaInsets();
   const { isOpen, close } = useNotificationPanel();
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
   const translateX = React.useRef(new Animated.Value(PANEL_W)).current;
@@ -39,8 +41,18 @@ export default function NotificationPanel() {
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      {/* Slide-in panel from right — no backdrop, page stays interactive */}
-      <Animated.View style={[styles.panel, { transform: [{ translateX }] }]} pointerEvents="box-none">
+      {/* Slide-in panel from right */}
+      <Animated.View
+        style={[
+          styles.panel,
+          {
+            top: insets.top,
+            transform: [{ translateX }],
+            paddingTop: 0,
+          },
+        ]}
+        pointerEvents="box-none"
+      >
         <View style={styles.header} pointerEvents="auto">
           <Text style={styles.headerTitle}>Notifications</Text>
           <View style={styles.headerRight}>
@@ -86,6 +98,12 @@ export default function NotificationPanel() {
           )}
         </View>
       </Animated.View>
+      {/* Transparent overlay on the left side to capture outside taps and close the panel */}
+      <TouchableOpacity
+        style={[styles.outsideOverlay, { right: PANEL_W }]}
+        activeOpacity={1}
+        onPress={close}
+      />
     </View>
   );
 }
@@ -124,4 +142,11 @@ const styles = StyleSheet.create({
   titleRead: { color: '#6B7280', fontWeight: '500' },
   body: { color: '#6B7280', fontSize: 12.5, marginTop: 3, lineHeight: 18 },
   time: { color: '#9CA3AF', fontSize: 11.5, marginTop: 5 },
+  outsideOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'transparent',
+  },
 });

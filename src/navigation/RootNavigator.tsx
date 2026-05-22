@@ -56,32 +56,42 @@ export default function RootNavigator() {
       )}
       {userRole === 'professor' && (
         <>
-          <Stack.Screen name="Professor" component={(props: any) => (
-            <ProfessorDashboard {...props} onLogout={() => require('../lib/supabase').supabase.auth.signOut()} />
-          )} />
+          <Stack.Screen name="Professor">
+            {(props: any) => (
+              <ProfessorDashboard {...props} onLogout={() => require('../lib/supabase').supabase.auth.signOut()} />
+            )}
+          </Stack.Screen>
           <Stack.Screen name="ProfessorClassList" component={ProfessorClassList} />
           <Stack.Screen name="ProfessorClassDetail" component={ProfessorClassDetail} />
         </>
       )}
       {userRole === 'admin' && (
-        <Stack.Screen name="Admin" component={(props: any) => (
-          <AdminDashboard {...props} onLogout={() => require('../lib/supabase').supabase.auth.signOut()} />
-        )} />
+        <Stack.Screen name="Admin">
+          {(props: any) => (
+            <AdminDashboard {...props} onLogout={() => require('../lib/supabase').supabase.auth.signOut()} />
+          )}
+        </Stack.Screen>
       )}
       {(userRole as string) === 'alumni_admin' && (
-        <Stack.Screen name="AlumniAdmin" component={(props: any) => (
-          <AlumniAdminScreen {...props} onLogout={() => require('../lib/supabase').supabase.auth.signOut()} />
-        )} />
+        <Stack.Screen name="AlumniAdmin">
+          {(props: any) => (
+            <AlumniAdminScreen {...props} onLogout={() => require('../lib/supabase').supabase.auth.signOut()} />
+          )}
+        </Stack.Screen>
       )}
       {(userRole as string) === 'super_admin' && (
-        <Stack.Screen name="SuperAdmin" component={(props: any) => (
-          <SuperAdminScreen {...props} onLogout={() => require('../lib/supabase').supabase.auth.signOut()} />
-        )} />
+        <Stack.Screen name="SuperAdmin">
+          {(props: any) => (
+            <SuperAdminScreen {...props} onLogout={() => require('../lib/supabase').supabase.auth.signOut()} />
+          )}
+        </Stack.Screen>
       )}
       {(userRole === 'alumni' || userRole === 'applicant') && (
-        <Stack.Screen name="Alumni" component={(props: any) => (
-          <AlumniDashboard {...props} onLogout={() => require('../lib/supabase').supabase.auth.signOut()} />
-        )} />
+        <Stack.Screen name="Alumni">
+          {(props: any) => (
+            <AlumniDashboard {...props} onLogout={() => require('../lib/supabase').supabase.auth.signOut()} />
+          )}
+        </Stack.Screen>
       )}
       {/* Fallback — show auth if role is unrecognized */}
       <Stack.Screen name="Auth" component={AuthStack} />
