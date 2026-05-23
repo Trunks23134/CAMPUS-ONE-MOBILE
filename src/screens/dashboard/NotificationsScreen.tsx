@@ -71,11 +71,11 @@ export default function NotificationsScreen() {
 
 function NotifRow({ item, timeAgo, onPress }: { item: Notification; timeAgo: string; onPress: () => void }) {
   return (
-    <TouchableOpacity style={[styles.row, item.read && styles.rowRead]} onPress={onPress} activeOpacity={0.8}>
-      <View style={[styles.dot, { backgroundColor: item.read ? '#D1D5DB' : colors.primary }]} />
+    <TouchableOpacity style={[styles.row, item.is_read && styles.rowRead]} onPress={onPress} activeOpacity={0.8}>
+      <View style={[styles.dot, { backgroundColor: item.is_read ? '#D1D5DB' : colors.primary }]} />
       <View style={{ flex: 1 }}>
-        <Text style={[styles.title, item.read && { color: '#6B7280' }]}>{item.title}</Text>
-        {item.message ? <Text style={styles.body}>{item.message}</Text> : null}
+        <Text style={[styles.title, item.is_read && { color: '#6B7280' }]}>{item.title}</Text>
+        {item.body ? <Text style={styles.body}>{item.body}</Text> : null}
         <View style={styles.ageRow}>
           <Ionicons name="time-outline" size={12} color="#9CA3AF" />
           <Text style={styles.ageText}>{timeAgo}</Text>

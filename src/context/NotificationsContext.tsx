@@ -5,8 +5,8 @@ import { useAuth } from './AuthContext';
 export type Notification = {
   id: string;
   title: string;
-  message: string | null;
-  read: boolean;
+  body: string | null;
+  is_read: boolean;
   created_at: string;
 };
 
@@ -31,8 +31,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     setLoading(true);
     const { data, error } = await supabase
       .from('notifications')
-      .select('id, title, message, read, created_at')
-      .eq('user_id', profile.id)
+      .select('id, title, body, is_read, created_at')
+      .eq('profile_id', profile.id)
       .order('created_at', { ascending: false });
     if (!error && data) setNotifications(data as Notification[]);
     setLoading(false);
@@ -50,7 +50,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         event: '*',
         schema: 'public',
         table: 'notifications',
-        filter: `user_id=eq.${profile.id}`,
+        filter: `profile_id=eq.${profile.id}`,
       }, () => { fetch(); })
       .subscribe();
 
@@ -58,18 +58,18 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   }, [profile?.id, fetch]);
 
   const markAsRead = async (id: string) => {
-    await supabase.from('notifications').update({ read: true }).eq('id', id);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
   };
 
   const markAllAsRead = async () => {
     if (!profile?.id) return;
-    await supabase.from('notifications').update({ read: true })
-      .eq('user_id', profile.id).eq('read', false);
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    await supabase.from('notifications').update({ is_read: true })
+      .eq('profile_id', profile.id).eq('is_read', false);
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
     <NotificationsContext.Provider value={{ notifications, unreadCount, loading, refresh: fetch, markAsRead, markAllAsRead }}>

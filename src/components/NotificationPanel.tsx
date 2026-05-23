@@ -82,14 +82,14 @@ export default function NotificationPanel() {
               contentContainerStyle={{ paddingBottom: 20 }}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[styles.row, item.read && styles.rowRead]}
+                  style={[styles.row, item.is_read && styles.rowRead]}
                   onPress={() => markAsRead(item.id)}
                   activeOpacity={0.75}
                 >
-                  <View style={[styles.dot, { backgroundColor: item.read ? '#D1D5DB' : colors.primary }]} />
+                  <View style={[styles.dot, { backgroundColor: item.is_read ? '#D1D5DB' : colors.primary }]} />
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.title, item.read && styles.titleRead]}>{item.title}</Text>
-                    {item.message ? <Text style={styles.body}>{item.message}</Text> : null}
+                    <Text style={[styles.title, item.is_read && styles.titleRead]}>{item.title}</Text>
+                    {item.body ? <Text style={styles.body}>{item.body}</Text> : null}
                     <Text style={styles.time}>{timeAgo(item.created_at)}</Text>
                   </View>
                 </TouchableOpacity>

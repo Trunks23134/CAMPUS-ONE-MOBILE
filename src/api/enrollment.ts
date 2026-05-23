@@ -67,6 +67,7 @@ export async function fetchStudent(
   try {
     // Get name, program, status from applicant_profiles (id = auth.uid())
     const { data, error } = await supabase
+      .schema("applicant")
       .from('applicant_profiles')
       .select('id, first_name, last_name, program, status')
       .eq('id', userId)
@@ -85,6 +86,7 @@ export async function fetchStudent(
 
     // Get student_number from student_accounts (linked via applicant_id)
     const { data: sa } = await supabase
+      .schema("student")
       .from('student_accounts')
       .select('student_number')
       .eq('applicant_id', userId)
@@ -110,6 +112,7 @@ export async function fetchOfferings(
 ): Promise<SubjectOffering[] | EnrollmentError> {
   try {
     const { data, error } = await supabase
+      .schema("subject")
       .from('subject_offerings')
       .select(
         `id, subject_id, term, school_year, section, schedule, room, instructor,
