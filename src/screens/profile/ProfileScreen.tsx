@@ -11,6 +11,9 @@ import TopBar from '../../components/TopBar';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 
+const applicantDb = supabase.schema('applicant');
+const studentDb = supabase.schema('student');
+
 type ApplicantData = {
   id: string; email: string; first_name: string; last_name: string;
   middle_name: string; birthdate: string | null; mobile_number: string;
@@ -40,12 +43,12 @@ export default function ProfileScreen() {
   const load = async () => {
     if (!user?.id) { setLoading(false); return; }
     const [apRes, piRes, abRes, psRes, arRes, saRes] = await Promise.all([
-      supabase.from('applicant_profiles').select('id,email,first_name,last_name,middle_name,birthdate,mobile_number,address,program,status').eq('id', user.id).maybeSingle(),
-      supabase.from('parent_information').select('*').eq('applicant_id', user.id).maybeSingle(),
-      supabase.from('academic_background').select('grade_level,school_name,completion_year').eq('applicant_id', user.id).order('completion_year', { ascending: false }),
-      supabase.from('program_selections').select('college_department,college_program,senior_high_track').eq('applicant_id', user.id).maybeSingle(),
-      supabase.from('alumni_relatives').select('name,relationship,college,batch_year,contact_number').eq('applicant_id', user.id),
-      supabase.from('student_accounts').select('student_number').eq('applicant_id', user.id).maybeSingle(),
+      applicantDb.from('applicant_profiles').select('id,email,first_name,last_name,middle_name,birthdate,mobile_number,address,program,status').eq('id', user.id).maybeSingle(),
+      applicantDb.from('parent_information').select('*').eq('applicant_id', user.id).maybeSingle(),
+      applicantDb.from('academic_background').select('grade_level,school_name,completion_year').eq('applicant_id', user.id).order('completion_year', { ascending: false }),
+      applicantDb.from('program_selections').select('college_department,college_program,senior_high_track').eq('applicant_id', user.id).maybeSingle(),
+      applicantDb.from('alumni_relatives').select('name,relationship,college,batch_year,contact_number').eq('applicant_id', user.id),
+      studentDb.from('student_accounts').select('student_number').eq('applicant_id', user.id).maybeSingle(),
     ]);
     if (apRes.data) setAp(apRes.data as ApplicantData);
     if (piRes.data) setParent(piRes.data as ParentInfo);
@@ -59,13 +62,13 @@ export default function ProfileScreen() {
   useEffect(() => { load(); }, [user?.id]);
 
   const formatDate = (iso: string | null) => {
-    if (!iso) return '—';
+    if (!iso) return 'ï¿½';
     return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
   const fullName = ap
     ? `${ap.first_name} ${ap.middle_name ? ap.middle_name + ' ' : ''}${ap.last_name}`.trim()
-    : '—';
+    : 'ï¿½';
 
   return (
     <View style={styles.page}>
@@ -83,13 +86,13 @@ export default function ProfileScreen() {
               </View>
               <Text style={styles.title}>Student Profile</Text>
               <Info icon="person-outline" label="Full Name" value={fullName} />
-              <Info icon="card-outline" label="Student Number" value={studentNumber ?? '—'} />
-              <Info icon="mail-outline" label="Email" value={ap?.email ?? '—'} />
-              <Info icon="call-outline" label="Contact Number" value={ap?.mobile_number ?? '—'} />
-              <Info icon="location-outline" label="Address" value={ap?.address ?? '—'} />
+              <Info icon="card-outline" label="Student Number" value={studentNumber ?? 'ï¿½'} />
+              <Info icon="mail-outline" label="Email" value={ap?.email ?? 'ï¿½'} />
+              <Info icon="call-outline" label="Contact Number" value={ap?.mobile_number ?? 'ï¿½'} />
+              <Info icon="location-outline" label="Address" value={ap?.address ?? 'ï¿½'} />
               <Info icon="calendar-outline" label="Date of Birth" value={formatDate(ap?.birthdate ?? null)} />
-              <Info icon="school-outline" label="Program" value={ap?.program ?? '—'} />
-              <Info icon="checkmark-circle-outline" label="Status" value={ap?.status ?? '—'} />
+              <Info icon="school-outline" label="Program" value={ap?.program ?? 'ï¿½'} />
+              <Info icon="checkmark-circle-outline" label="Status" value={ap?.status ?? 'ï¿½'} />
               <TouchableOpacity style={styles.editBtn} onPress={() => setEditVisible(true)}>
                 <Text style={styles.editText}>Edit Profile</Text>
               </TouchableOpacity>
@@ -98,8 +101,8 @@ export default function ProfileScreen() {
             {programSel && (
               <Card style={styles.sectionCard}>
                 <Text style={styles.sectionTitle}>College / Course Information</Text>
-                <Info icon="library-outline" label="Program" value={programSel.college_program ?? programSel.senior_high_track ?? '—'} />
-                <Info icon="grid-outline" label="Department" value={programSel.college_department ?? '—'} />
+                <Info icon="library-outline" label="Program" value={programSel.college_program ?? programSel.senior_high_track ?? 'ï¿½'} />
+                <Info icon="grid-outline" label="Department" value={programSel.college_department ?? 'ï¿½'} />
               </Card>
             )}
 
@@ -139,7 +142,7 @@ export default function ProfileScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.infoLabel}>{row.relationship}</Text>
                       <Text style={styles.infoValue}>{row.name}</Text>
-                      <Text style={[styles.infoLabel, { marginTop: 2 }]}>{row.college} • {row.batch_year}</Text>
+                      <Text style={[styles.infoLabel, { marginTop: 2 }]}>{row.college} ï¿½ {row.batch_year}</Text>
                     </View>
                   </View>
                 ))}
@@ -187,7 +190,7 @@ function EditModal({ visible, onClose, onSaved, ap }: {
     if (!ap?.id) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from('applicant_profiles').update({
+      const { error } = await applicantDb.from('applicant_profiles').update({
         first_name: firstName.trim(), last_name: lastName.trim(),
         middle_name: middleName.trim(), mobile_number: mobile.trim(), address: address.trim(),
         full_name: `${firstName.trim()} ${middleName.trim()} ${lastName.trim()}`.replace(/\s+/g, ' ').trim(),

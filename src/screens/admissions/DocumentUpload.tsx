@@ -23,6 +23,7 @@ import {
   getApplicantDocuments 
 } from '../../services/admissions.service';
 import { getRequirements } from '../../services/requirements.config';
+import { invokeFlowCallback } from '../../navigation/flowCallbacks';
 
 interface Props {
   navigation: any;
@@ -31,8 +32,8 @@ interface Props {
       schoolLevel: SchoolLevel;
       applicantType: ApplicantType;
       applicantId: string;
-      onSuccess: (data: any) => void;
-      onBack: (partialData?: any) => void;
+      onSuccessId: string;
+      onBackId: string;
       initialData?: any;
     };
   };
@@ -46,7 +47,7 @@ interface DocState {
 }
 
 export default function DocumentUpload({ navigation, route }: Props) {
-  const { schoolLevel, applicantType, applicantId, onSuccess, onBack, initialData } = route.params;
+  const { schoolLevel, applicantType, applicantId, onSuccessId, onBackId, initialData } = route.params;
   const requirements = getRequirements(schoolLevel, applicantType);
 
   const [docStates, setDocStates] = useState<Record<string, DocState>>(() => {
@@ -176,7 +177,7 @@ export default function DocumentUpload({ navigation, route }: Props) {
     
     setIsSubmitting(true);
     try {
-      await onSuccess({ docStates });
+      invokeFlowCallback(onSuccessId, { docStates });
     } catch (err: any) {
       Alert.alert('Submission Error', err.message || 'Something went wrong');
     } finally {
@@ -188,7 +189,7 @@ export default function DocumentUpload({ navigation, route }: Props) {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+        <TouchableOpacity style={styles.backButton} onPress={() => invokeFlowCallback(onBackId)}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
@@ -384,7 +385,7 @@ export default function DocumentUpload({ navigation, route }: Props) {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.backButtonFooter} onPress={() => onBack({ docStates })} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.backButtonFooter} onPress={() => invokeFlowCallback(onBackId, { docStates })} activeOpacity={0.7}>
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
       </View>

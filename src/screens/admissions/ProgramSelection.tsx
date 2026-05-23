@@ -22,6 +22,7 @@ import type {
   SeniorHighTrack,
 } from '../../types/admissions.types';
 import { saveProgramSelection } from '../../services/admissions.service';
+import { invokeFlowCallback } from '../../navigation/flowCallbacks';
 import {
   COLLEGE_DEPARTMENTS,
   getProgramsForDepartment,
@@ -36,15 +37,15 @@ interface Props {
       schoolLevel: SchoolLevel;
       applicantType: ApplicantType;
       applicantId: string;
-      onSuccess: (data: any) => void;
-      onBack: (partialData?: any) => void;
+      onSuccessId: string;
+      onBackId: string;
       initialData?: any;
     };
   };
 }
 
 export default function ProgramSelection({ navigation, route }: Props) {
-  const { schoolLevel, applicantType, applicantId, onSuccess, onBack, initialData } = route.params;
+  const { schoolLevel, applicantType, applicantId, onSuccessId, onBackId, initialData } = route.params;
 
   const [collegeDepartment, setCollegeDepartment] = useState<any>(
     initialData?.collegeDepartment 
@@ -117,7 +118,7 @@ export default function ProgramSelection({ navigation, route }: Props) {
         return;
       }
 
-      onSuccess({
+      invokeFlowCallback(onSuccessId, {
         collegeDepartment: collegeDepartment!,
         collegeProgram: collegeProgram!,
       });
@@ -137,7 +138,7 @@ export default function ProgramSelection({ navigation, route }: Props) {
         return;
       }
 
-      onSuccess({ seniorHighTrack: finalTrack! as SeniorHighTrack });
+      invokeFlowCallback(onSuccessId, { seniorHighTrack: finalTrack! as SeniorHighTrack });
     } else {
       // For other levels (Junior High, Elementary, Kinder)
       const res = await saveProgramSelection({
@@ -153,7 +154,7 @@ export default function ProgramSelection({ navigation, route }: Props) {
         return;
       }
 
-      onSuccess({});
+      invokeFlowCallback(onSuccessId, {});
     }
   };
 
@@ -167,7 +168,7 @@ export default function ProgramSelection({ navigation, route }: Props) {
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={onBack}>
+          <TouchableOpacity style={styles.backButton} onPress={() => invokeFlowCallback(onBackId)}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerContent}>
@@ -224,7 +225,7 @@ export default function ProgramSelection({ navigation, route }: Props) {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.backButtonFooter} onPress={onBack} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.backButtonFooter} onPress={() => invokeFlowCallback(onBackId)} activeOpacity={0.7}>
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
         </View>
@@ -243,7 +244,7 @@ export default function ProgramSelection({ navigation, route }: Props) {
           <TouchableOpacity 
             style={styles.backButton} 
             onPress={() => {
-              onBack({
+              invokeFlowCallback(onBackId, {
                 collegeDepartment,
                 otherDepartment,
                 collegeProgram,
@@ -379,7 +380,7 @@ export default function ProgramSelection({ navigation, route }: Props) {
           <TouchableOpacity 
             style={styles.backButtonFooter} 
             onPress={() => {
-              onBack({
+              invokeFlowCallback(onBackId, {
                 collegeDepartment,
                 otherDepartment,
                 collegeProgram,
@@ -533,7 +534,7 @@ export default function ProgramSelection({ navigation, route }: Props) {
           <TouchableOpacity 
             style={styles.backButton} 
             onPress={() => {
-              onBack({
+              invokeFlowCallback(onBackId, {
                 collegeDepartment,
                 otherDepartment,
                 collegeProgram,
@@ -639,7 +640,7 @@ export default function ProgramSelection({ navigation, route }: Props) {
           <TouchableOpacity 
             style={styles.backButtonFooter} 
             onPress={() => {
-              onBack({
+              invokeFlowCallback(onBackId, {
                 collegeDepartment,
                 otherDepartment,
                 collegeProgram,

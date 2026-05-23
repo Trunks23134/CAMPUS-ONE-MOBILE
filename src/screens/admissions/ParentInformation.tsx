@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { SchoolLevel, ApplicantType } from '../../types/admissions.types';
 import { saveParentInformation } from '../../services/admissions.service';
+import { invokeFlowCallback } from '../../navigation/flowCallbacks';
 
 interface Props {
   navigation: any;
@@ -23,8 +24,8 @@ interface Props {
       schoolLevel: SchoolLevel;
       applicantType: ApplicantType;
       applicantId: string;
-      onSuccess: (data: any) => void;
-      onBack: () => void;
+      onSuccessId: string;
+      onBackId: string;
       initialData?: any;
     };
   };
@@ -44,7 +45,7 @@ interface FormState {
 }
 
 export default function ParentInformation({ navigation, route }: Props) {
-  const { schoolLevel, applicantType, applicantId, onSuccess, onBack, initialData } = route.params;
+  const { schoolLevel, applicantType, applicantId, onSuccessId, onBackId, initialData } = route.params;
 
   const [form, setForm] = useState<FormState>({
     fatherName: initialData?.fatherName || '',
@@ -157,7 +158,7 @@ export default function ParentInformation({ navigation, route }: Props) {
         Alert.alert('Error', res.error.message);
       } else {
         console.log('[ParentInformation] Save successful. Triggering onSuccess...');
-        onSuccess({
+        invokeFlowCallback(onSuccessId, {
           father_name: form.fatherName,
           father_address: form.fatherAddress,
           father_contact: form.fatherContact,
@@ -183,7 +184,7 @@ export default function ParentInformation({ navigation, route }: Props) {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+        <TouchableOpacity style={styles.backButton} onPress={() => invokeFlowCallback(onBackId)}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
@@ -394,7 +395,7 @@ export default function ParentInformation({ navigation, route }: Props) {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.backButtonFooter} onPress={onBack} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.backButtonFooter} onPress={() => invokeFlowCallback(onBackId)} activeOpacity={0.7}>
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
       </View>

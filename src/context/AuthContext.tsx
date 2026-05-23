@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
+const applicantDb = supabase.schema('applicant');
+
 export type UserRole = 'student' | 'professor' | 'admin' | 'alumni' | 'applicant' | null;
 
 export type Profile = {
@@ -92,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .eq('id', userId)
       .maybeSingle();
 
-    const { data: ap } = await supabase
+    const { data: ap } = await applicantDb
       .from('applicant_profiles')
       .select('first_name, last_name, program, status, mobile_number, address, birthdate')
       .eq('id', userId)

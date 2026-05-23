@@ -1,6 +1,8 @@
 import { supabase } from '../lib/supabase';
 import type { SupabaseResponse } from '../types/admissions.types';
 
+const applicantDb = supabase.schema('applicant');
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ApplicationStatus {
@@ -50,7 +52,7 @@ export async function fetchApplicationStatus(
 ): Promise<SupabaseResponse<FullApplicationStatus>> {
   try {
     // Fetch application details
-    const { data: appData, error: appError } = await supabase
+    const { data: appData, error: appError } = await applicantDb
       .from('applicant_profiles')
       .select('*')
       .ilike('email', email.trim())
@@ -65,7 +67,7 @@ export async function fetchApplicationStatus(
     }
 
     // Fetch documents
-    const { data: docsData } = await supabase
+    const { data: docsData } = await applicantDb
       .from('applicant_documents')
       .select('*')
       .eq('applicant_id', appData.id)

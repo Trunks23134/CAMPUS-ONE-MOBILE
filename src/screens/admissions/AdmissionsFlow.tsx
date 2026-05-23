@@ -6,6 +6,7 @@ import type { AppSession, SchoolLevel, ApplicantType } from '../../types/admissi
 import SchoolLevelSelection from './SchoolLevelSelection';
 import ApplicantTypeSelection from './ApplicantTypeSelection';
 import { submitApplication, saveProgramSelection } from '../../services/admissions.service';
+import { createFlowCallback } from '../../navigation/flowCallbacks';
 
 interface Props {
   navigation: any;
@@ -78,13 +79,25 @@ export default function AdmissionsFlow({ navigation }: Props) {
     navigation.navigate('CreateAccount', {
       schoolLevel: session.schoolLevel,
       applicantType: session.applicantType,
-      onSuccess: handleAccountCreated,
+      onSuccessId: createFlowCallback(handleAccountCreated),
     });
   };
 
-  const handleAccountCreated = (applicantId: string, email: string) => {
+  const handleAccountCreated = (payload: any) => {
+    // Defensive logging to capture exact payload shape (avoids [object Object] output)
+    try {
+      console.log('[AdmissionsFlow] handleAccountCreated payload type:', typeof payload);
+      console.log('[AdmissionsFlow] handleAccountCreated payload (raw):', payload);
+      console.log('[AdmissionsFlow] handleAccountCreated payload (json):', JSON.stringify(payload));
+    } catch (e) {
+      console.log('[AdmissionsFlow] payload stringify failed:', e);
+    }
+
+    // Support multiple payload shapes for robustness
+    const applicantId = (payload && (payload.applicantId ?? payload.id)) || payload;
+    const email = payload?.email ?? null;
     console.log('Account success callback triggered for:', applicantId);
-    
+
     // Update local state first
     updateSession({ applicantId, email, step: 'personal-profile' });
 
@@ -95,8 +108,8 @@ export default function AdmissionsFlow({ navigation }: Props) {
       applicantId: applicantId,
       email: email,
       initialData: {},
-      onSuccess: handleProfileCompleted,
-      onBack: () => navigation.goBack(),
+      onSuccessId: createFlowCallback(handleProfileCompleted),
+      onBackId: createFlowCallback(() => navigation.goBack()),
     });
   };
 
@@ -125,8 +138,8 @@ export default function AdmissionsFlow({ navigation }: Props) {
       applicantType: sessionRef.current.applicantType,
       applicantId,
       initialData: { ...sessionRef.current, ...data },
-      onSuccess: handleParentInfoCompleted,
-      onBack: () => navigation.goBack(),
+      onSuccessId: createFlowCallback(handleParentInfoCompleted),
+      onBackId: createFlowCallback(() => navigation.goBack()),
     });
   };
 
@@ -155,14 +168,14 @@ export default function AdmissionsFlow({ navigation }: Props) {
         applicantType: sessionRef.current.applicantType,
         applicantId,
         initialData: { ...sessionRef.current, ...data },
-        onSuccess: handleAcademicBackgroundCompleted,
-        onBack: (partialData?: any) => {
+        onSuccessId: createFlowCallback(handleAcademicBackgroundCompleted),
+        onBackId: createFlowCallback((partialData?: any) => {
           if (partialData?.entries) {
             console.log('[AdmissionsFlow] Saving partial Academic Background on back...');
             updateSession({ academicBackground: partialData.entries });
           }
           navigation.goBack();
-        },
+        }),
       });
       console.log('[AdmissionsFlow] Navigation triggered.');
     } catch (error) {
@@ -187,13 +200,13 @@ export default function AdmissionsFlow({ navigation }: Props) {
         applicantType: sessionRef.current.applicantType,
         applicantId,
         initialData: { ...sessionRef.current, ...data },
-        onSuccess: handleAlumniInfoCompleted,
-        onBack: (partialData?: any) => {
+        onSuccessId: createFlowCallback(handleAlumniInfoCompleted),
+        onBackId: createFlowCallback((partialData?: any) => {
           if (partialData?.relatives) {
             updateSession({ relatives: partialData.relatives });
           }
           navigation.goBack();
-        },
+        }),
       });
       console.log('[AdmissionsFlow] Navigation triggered.');
     } catch (error) {
@@ -234,8 +247,8 @@ export default function AdmissionsFlow({ navigation }: Props) {
         applicantType: sessionRef.current.applicantType,
         applicantId,
         initialData: { ...sessionRef.current, ...data },
-        onSuccess: handleDocumentsCompleted,
-        onBack: () => navigation.goBack(),
+        onSuccessId: createFlowCallback(handleDocumentsCompleted),
+        onBackId: createFlowCallback(() => navigation.goBack()),
       });
       return;
     }
@@ -246,8 +259,8 @@ export default function AdmissionsFlow({ navigation }: Props) {
       applicantType: sessionRef.current.applicantType,
       applicantId,
       initialData: { ...sessionRef.current, ...data },
-      onSuccess: handleProgramSelectionCompleted,
-      onBack: (partialData?: any) => {
+      onSuccessId: createFlowCallback(handleProgramSelectionCompleted),
+      onBackId: createFlowCallback((partialData?: any) => {
         if (partialData) {
           updateSession({
             collegeDepartment: partialData.collegeDepartment,
@@ -256,7 +269,7 @@ export default function AdmissionsFlow({ navigation }: Props) {
           });
         }
         navigation.goBack();
-      },
+      }),
     });
   };
 
@@ -275,13 +288,13 @@ export default function AdmissionsFlow({ navigation }: Props) {
       applicantType: sessionRef.current.applicantType,
       applicantId,
       initialData: { ...sessionRef.current, ...data },
-      onSuccess: handleDocumentsCompleted,
-      onBack: (partialData?: any) => {
+        onSuccessId: createFlowCallback(handleDocumentsCompleted),
+        onBackId: createFlowCallback((partialData?: any) => {
         if (partialData?.docStates) {
           updateSession({ docStates: partialData.docStates });
         }
         navigation.goBack();
-      },
+        }),
     });
   };
 

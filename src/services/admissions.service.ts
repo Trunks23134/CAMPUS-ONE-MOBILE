@@ -13,6 +13,7 @@ import type {
   SupabaseResponse,
 } from '../types/admissions.types';
 
+const applicationDb = supabase.schema('applicant');
 const STORAGE_BUCKET = 'applicant-documents';
 
 // ─── Account Creation ─────────────────────────────────────────────────────────
@@ -37,7 +38,7 @@ export async function createApplicantProfile(
     const cleanEmail = dto.email.trim().toLowerCase();
 
     // 1. Check if email already exists
-    const { data: existingList } = await supabase
+    const { data: existingList } = await applicationDb
       .from('applicant_profiles')
       .select('id')
       .ilike('email', cleanEmail)
@@ -59,7 +60,7 @@ export async function createApplicantProfile(
     };
 
     const { error } = (await Promise.race([
-      supabase.from('applicant_profiles').insert(insertData),
+      applicationDb.from('applicant_profiles').insert(insertData),
       timeout
     ])) as any;
 
@@ -67,7 +68,7 @@ export async function createApplicantProfile(
     if (error && error.message.includes('enum')) {
       console.warn('Enum failed, retrying without status field...');
       delete insertData.status;
-      const { error: retryError } = await supabase.from('applicant_profiles').insert(insertData);
+      const { error: retryError } = await applicationDb.from('applicant_profiles').insert(insertData);
       if (retryError) return { data: null, error: { message: retryError.message } };
       return { data: { id: applicantId }, error: null };
     }
@@ -85,7 +86,7 @@ export async function saveApplicantProfile(
 ): Promise<SupabaseResponse<{ id: string }>> {
   const fullName = `${dto.first_name} ${dto.last_name}`.trim();
 
-  const { error } = await supabase
+  const { error } = await applicationDb
     .from('applicant_profiles')
     .update({
       first_name: dto.first_name,
@@ -108,7 +109,7 @@ export async function saveApplicantProfile(
 export async function saveParentInformation(
   data: ParentInformationDTO
 ): Promise<SupabaseResponse<{ id: string }>> {
-  const { error } = await supabase
+  const { error } = await applicationDb
     .from('parent_information')
     .upsert(
       {
@@ -136,7 +137,7 @@ export async function saveAcademicBackground(
   data: AcademicBackgroundDTO
 ): Promise<SupabaseResponse<{ count: number }>> {
   // Delete existing entries
-  await supabase.from('academic_background').delete().eq('applicant_id', data.applicant_id);
+  await applicationDb.from('academic_background').delete().eq('applicant_id', data.applicant_id);
 
   // Insert new entries
   const records = data.entries.map((entry) => ({
@@ -146,7 +147,7 @@ export async function saveAcademicBackground(
     completion_year: entry.completion_year,
   }));
 
-  const { error } = await supabase.from('academic_background').insert(records);
+  const { error } = await applicationDb.from('academic_background').insert(records);
   if (error) return { data: null, error: { message: error.message } };
   return { data: { count: records.length }, error: null };
 }
@@ -156,7 +157,7 @@ export async function saveAlumniRelatives(
   data: AlumniRelativesDTO
 ): Promise<SupabaseResponse<{ count: number }>> {
   // Delete existing entries
-  await supabase.from('alumni_relatives').delete().eq('applicant_id', data.applicant_id);
+  await applicationDb.from('alumni_relatives').delete().eq('applicant_id', data.applicant_id);
 
   // Insert new entries (only if there are relatives)
   if (data.relatives.length === 0) {
@@ -172,7 +173,7 @@ export async function saveAlumniRelatives(
     contact_number: relative.contact_number,
   }));
 
-  const { error } = await supabase.from('alumni_relatives').insert(records);
+  const { error } = await applicationDb.from('alumni_relatives').insert(records);
   if (error) return { data: null, error: { message: error.message } };
   return { data: { count: records.length }, error: null };
 }
@@ -181,7 +182,7 @@ export async function saveAlumniRelatives(
 export async function saveProgramSelection(
   data: ProgramSelectionDTO
 ): Promise<SupabaseResponse<{ id: string }>> {
-  const { error } = await supabase
+  const { error } = await applicationDb
     .from('program_selections')
     .upsert(
       {
@@ -200,7 +201,7 @@ export async function saveProgramSelection(
 
   // Update program field in applicant_profiles
   const programName = data.college_program || data.senior_high_track || data.school_level;
-  await supabase.from('applicant_profiles').update({ program: programName }).eq('id', data.applicant_id);
+  await applicationDb.from('applicant_profiles').update({ program: programName }).eq('id', data.applicant_id);
 
   return { data: { id: data.applicant_id }, error: null };
 }
@@ -215,7 +216,7 @@ export async function uploadApplicantDocument(
     const blob = await response.blob();
 
     // Fetch applicant reference number from the database using applicant_id
-    const { data: profileData, error: profileError } = await supabase
+    const { data: profileData, error: profileError } = await applicationDb
       .from('applicant_profiles')
       .select('reference_number')
       .eq('id', dto.applicant_id)
@@ -249,7 +250,7 @@ export async function uploadApplicantDocument(
     const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
 
     // Save to database
-    const { data, error: dbError } = await supabase
+    const { data, error: dbError } = await applicationDb
       .from('applicant_documents')
       .insert({
         applicant_id: dto.applicant_id,
@@ -281,7 +282,7 @@ export async function submitApplication(
   applicantId: string
 ): Promise<SupabaseResponse<{ reference_number: string }>> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await applicationDb
       .from('applicant_profiles')
       .update({
         application_submitted_at: new Date().toISOString(),
@@ -295,7 +296,7 @@ export async function submitApplication(
       // Safety Fallback: If enum fails, try without status field
       if (error.message.includes('enum')) {
         console.warn('Submission status enum failed, retrying without status field...');
-        const { data: retryData, error: retryError } = await supabase
+        const { data: retryData, error: retryError } = await applicationDb
           .from('applicant_profiles')
           .update({
             application_submitted_at: new Date().toISOString(),
@@ -320,7 +321,7 @@ export async function submitApplication(
 export async function getApplicantDocuments(
   applicantId: string
 ): Promise<SupabaseResponse<ApplicantDocument[]>> {
-  const { data, error } = await supabase
+  const { data, error } = await applicationDb
     .from('applicant_documents')
     .select('*')
     .eq('applicant_id', applicantId)

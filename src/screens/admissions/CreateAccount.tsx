@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { SchoolLevel, ApplicantType } from '../../types/admissions.types';
 import { createApplicantProfile } from '../../services/admissions.service';
+import { invokeFlowCallback } from '../../navigation/flowCallbacks';
 import { supabase } from '../../lib/supabase';
 
 interface Props {
@@ -21,13 +22,13 @@ interface Props {
     params: {
       schoolLevel: SchoolLevel;
       applicantType: ApplicantType;
-      onSuccess: (applicantId: string, email: string) => void;
+      onSuccessId: string;
     };
   };
 }
 
 export default function CreateAccount({ navigation, route }: Props) {
-  const { schoolLevel, applicantType, onSuccess } = route.params;
+  const { schoolLevel, applicantType, onSuccessId } = route.params;
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -72,17 +73,7 @@ export default function CreateAccount({ navigation, route }: Props) {
         Alert.alert('Registration Failed', res.error.message);
       } else {
         console.log('Account created successfully:', res.data?.id);
-        if (onSuccess) {
-          onSuccess(res.data!.id, email);
-        } else {
-          console.warn('onSuccess callback is missing, navigating manually');
-          navigation.navigate('PersonalProfile', {
-            applicantId: res.data!.id,
-            email: email,
-            schoolLevel: schoolLevel,
-            applicantType: applicantType
-          });
-        }
+        invokeFlowCallback(onSuccessId, { applicantId: res.data!.id, email });
       }
     } catch (err) {
       setLoading(false);

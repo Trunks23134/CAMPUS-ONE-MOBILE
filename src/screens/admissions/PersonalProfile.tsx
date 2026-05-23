@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import type { SchoolLevel, ApplicantType } from '../../types/admissions.types';
 import { saveApplicantProfile } from '../../services/admissions.service';
+import { invokeFlowCallback } from '../../navigation/flowCallbacks';
 
 interface Props {
   navigation: any;
@@ -25,8 +26,8 @@ interface Props {
       applicantType: ApplicantType;
       applicantId: string;
       email: string;
-      onSuccess: (data: any) => void;
-      onBack: () => void;
+      onSuccessId: string;
+      onBackId: string;
       initialData?: any;
     };
   };
@@ -54,7 +55,7 @@ const formatDateForInput = (date: Date): string => {
 };
 
 export default function PersonalProfile({ navigation, route }: Props) {
-  const { schoolLevel, applicantType, applicantId, onSuccess, onBack, initialData } = route.params;
+  const { schoolLevel, applicantType, applicantId, onSuccessId, onBackId, initialData } = route.params;
 
   const [form, setForm] = useState<FormState>({
     firstName: initialData?.firstName || '',
@@ -149,7 +150,7 @@ export default function PersonalProfile({ navigation, route }: Props) {
     if (res.error) {
       Alert.alert('Error', res.error.message);
     } else {
-      onSuccess({
+      invokeFlowCallback(onSuccessId, {
         first_name: form.firstName,
         last_name: form.lastName,
         middle_name: form.middleName,
@@ -214,7 +215,7 @@ export default function PersonalProfile({ navigation, route }: Props) {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+        <TouchableOpacity style={styles.backButton} onPress={() => invokeFlowCallback(onBackId)}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
@@ -454,7 +455,7 @@ export default function PersonalProfile({ navigation, route }: Props) {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.backButtonFooter} onPress={onBack} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.backButtonFooter} onPress={() => invokeFlowCallback(onBackId)} activeOpacity={0.7}>
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
       </View>

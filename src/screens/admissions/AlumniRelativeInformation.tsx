@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { SchoolLevel, ApplicantType } from '../../types/admissions.types';
 import { saveAlumniRelatives } from '../../services/admissions.service';
+import { invokeFlowCallback } from '../../navigation/flowCallbacks';
 
 interface Props {
   navigation: any;
@@ -23,8 +24,8 @@ interface Props {
       schoolLevel: SchoolLevel;
       applicantType: ApplicantType;
       applicantId: string;
-      onSuccess: (data: any) => void;
-      onBack: (partialData?: any) => void;
+      onSuccessId: string;
+      onBackId: string;
       initialData?: any;
     };
   };
@@ -69,7 +70,7 @@ function generateBatchYears(): string[] {
 }
 
 export default function AlumniRelativeInformation({ navigation, route }: Props) {
-  const { schoolLevel, applicantType, applicantId, onSuccess, onBack } = route.params;
+  const { schoolLevel, applicantType, applicantId, onSuccessId, onBackId } = route.params;
   const batchYears = generateBatchYears();
 
   const [alumni, setAlumni] = useState<AlumniEntry[]>([
@@ -163,7 +164,7 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
     // If blank, skip database call and proceed immediately
     if (filledAlumni.length === 0) {
       setLoading(false);
-      onSuccess({ relatives: [] });
+      invokeFlowCallback(onSuccessId, { relatives: [] });
       return;
     }
 
@@ -194,7 +195,7 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
       if (res.error) {
         Alert.alert('Error', res.error.message);
       } else {
-        onSuccess({ relatives });
+        invokeFlowCallback(onSuccessId, { relatives });
       }
     } catch (error) {
       setLoading(false);
@@ -207,7 +208,7 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+        <TouchableOpacity style={styles.backButton} onPress={() => invokeFlowCallback(onBackId)}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
@@ -423,7 +424,7 @@ export default function AlumniRelativeInformation({ navigation, route }: Props) 
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.backButtonFooter} onPress={onBack} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.backButtonFooter} onPress={() => invokeFlowCallback(onBackId)} activeOpacity={0.7}>
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
       </View>

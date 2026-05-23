@@ -11,6 +11,9 @@ import TopBar from '../../../components/TopBar';
 import { useAuth } from '../../../context/AuthContext';
 import { supabase } from '../../../lib/supabase';
 
+const applicantDb = supabase.schema('applicant');
+const studentDb = supabase.schema('student');
+
 type ApplicantData = {
   id: string; email: string; first_name: string; last_name: string;
   middle_name: string; birthdate: string | null; mobile_number: string;
@@ -40,12 +43,12 @@ export default function ProfileScreen() {
   const load = async () => {
     if (!user?.id) { setLoading(false); return; }
     const [apRes, piRes, abRes, psRes, arRes, saRes] = await Promise.all([
-      supabase.from('applicant_profiles').select('id,email,first_name,last_name,middle_name,birthdate,mobile_number,address,program,status').eq('id', user.id).maybeSingle(),
-      supabase.from('parent_information').select('*').eq('applicant_id', user.id).maybeSingle(),
-      supabase.from('academic_background').select('grade_level,school_name,completion_year').eq('applicant_id', user.id).order('completion_year', { ascending: false }),
-      supabase.from('program_selections').select('college_department,college_program,senior_high_track').eq('applicant_id', user.id).maybeSingle(),
-      supabase.from('alumni_relatives').select('name,relationship,college,batch_year,contact_number').eq('applicant_id', user.id),
-      supabase.from('student_accounts').select('student_number').eq('applicant_id', user.id).maybeSingle(),
+      applicantDb.from('applicant_profiles').select('id,email,first_name,last_name,middle_name,birthdate,mobile_number,address,program,status').eq('id', user.id).maybeSingle(),
+      applicantDb.from('parent_information').select('*').eq('applicant_id', user.id).maybeSingle(),
+      applicantDb.from('academic_background').select('grade_level,school_name,completion_year').eq('applicant_id', user.id).order('completion_year', { ascending: false }),
+      applicantDb.from('program_selections').select('college_department,college_program,senior_high_track').eq('applicant_id', user.id).maybeSingle(),
+      applicantDb.from('alumni_relatives').select('name,relationship,college,batch_year,contact_number').eq('applicant_id', user.id),
+      studentDb.from('student_accounts').select('student_number').eq('applicant_id', user.id).maybeSingle(),
     ]);
     if (apRes.data) setAp(apRes.data as ApplicantData);
     if (piRes.data) setParent(piRes.data as ParentInfo);
@@ -187,7 +190,7 @@ function EditModal({ visible, onClose, onSaved, ap }: {
     if (!ap?.id) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from('applicant_profiles').update({
+      const { error } = await applicantDb.from('applicant_profiles').update({
         first_name: firstName.trim(), last_name: lastName.trim(),
         middle_name: middleName.trim(), mobile_number: mobile.trim(), address: address.trim(),
         full_name: `${firstName.trim()} ${middleName.trim()} ${lastName.trim()}`.replace(/\s+/g, ' ').trim(),

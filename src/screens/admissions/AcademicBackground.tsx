@@ -17,6 +17,7 @@ import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import type { SchoolLevel, ApplicantType } from '../../types/admissions.types';
 import { saveAcademicBackground } from '../../services/admissions.service';
+import { invokeFlowCallback } from '../../navigation/flowCallbacks';
 
 interface Props {
   navigation: any;
@@ -25,8 +26,8 @@ interface Props {
       schoolLevel: SchoolLevel;
       applicantType: ApplicantType;
       applicantId: string;
-      onSuccess: (data: any) => void;
-      onBack: (partialData?: any) => void;
+      onSuccessId: string;
+      onBackId: string;
       initialData?: any;
     };
   };
@@ -71,7 +72,7 @@ function generateYearOptions(): string[] {
 }
 
 export default function AcademicBackground({ navigation, route }: Props) {
-  const { schoolLevel, applicantType, applicantId, onSuccess, onBack, initialData } = route.params;
+  const { schoolLevel, applicantType, applicantId, onSuccessId, onBackId, initialData } = route.params;
   const gradeLevels = getGradeLevels(schoolLevel, applicantType);
   const yearOptions = generateYearOptions();
 
@@ -228,7 +229,7 @@ export default function AcademicBackground({ navigation, route }: Props) {
       Alert.alert('Error', res.error.message);
     } else {
       // Proceed immediately without the intermediate success alert
-      onSuccess({ entries });
+      invokeFlowCallback(onSuccessId, { entries });
     }
   };
 
@@ -244,7 +245,7 @@ export default function AcademicBackground({ navigation, route }: Props) {
               school_name: grade.schoolName,
               completion_year: grade.completionYear,
             }));
-            onBack({ entries });
+            invokeFlowCallback(onBackId, { entries });
           }}
         >
           <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -413,7 +414,7 @@ export default function AcademicBackground({ navigation, route }: Props) {
               school_name: grade.schoolName,
               completion_year: grade.completionYear,
             }));
-            onBack({ entries });
+            invokeFlowCallback(onBackId, { entries });
           }} 
           activeOpacity={0.7}
         >
